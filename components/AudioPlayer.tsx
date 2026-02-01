@@ -1065,7 +1065,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const seek = (value: number) => {
         state.dragging = false
-        let percent = value / 100     
+        let percent = value / 100    
+        Tone.Transport.pause() 
         if (state.reverse === true) {
             updateSliderPos((percent) * 100)
             secondsProgress.current!.innerText = functions.formatSeconds(state.duration - Tone.Transport.seconds)
@@ -1081,8 +1082,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (value > state.duration - 1) value = state.duration - 1
             Tone.Transport.seconds = value
         }
+        Tone.Transport.start()
         if (state.midi) playMIDI()
-        if (Tone.Transport.state === "paused" || Tone.Transport.state === "stopped") play(true)
     }
 
     const rewind = (value: number) => {

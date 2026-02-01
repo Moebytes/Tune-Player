@@ -1,6 +1,6 @@
 {
   "name": "music-player",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A music player with real-time pitch shifting, reversing, and time stretching",
   "main": "dist/main.js",
   "scripts": {
