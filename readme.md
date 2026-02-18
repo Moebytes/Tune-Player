@@ -1,4 +1,4 @@
-## Music Player
+## Tune Player
    
 <img src="assets/images/readme.png">
 
@@ -27,6 +27,12 @@ This is a simple music player app.
 - Ctrl O: Upload file
 - Ctrl S: Download file
 - Drag and drop: Upload file
+
+### Design
+
+Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0Kh/Tune-Player
+
+*New design is wip
 
 ### Installation
 
