@@ -1,5 +1,4 @@
 import React, {useEffect, useReducer, useState} from "react"
-import {ipcRenderer} from "electron"
 import square from "../assets/images/square.png"
 import pageLeftButton from "../assets/icons/page-left.png"
 import pageLeftButtonHover from "../assets/icons/page-left-hover.png"
@@ -19,7 +18,7 @@ const RecentPlays: React.FunctionComponent = (props) => {
 
     useEffect(() => {
         const updateRecentGUI = async () => {
-            recent = await ipcRenderer.invoke("get-recent")
+            recent = await window.ipcRenderer.invoke("get-recent")
             let newPages = [] as any
             let counter = 0;
             while (counter < recent.length - 1) {
@@ -35,24 +34,24 @@ const RecentPlays: React.FunctionComponent = (props) => {
             forceUpdate()
         }
         updateRecentGUI()
-        ipcRenderer.on("update-recent-gui", updateRecentGUI)
+        window.ipcRenderer.on("update-recent-gui", updateRecentGUI)
         return () => {
-            ipcRenderer.removeListener("update-recent-gui", updateRecentGUI)
+            window.ipcRenderer.removeListener("update-recent-gui", updateRecentGUI)
         }
     }, [])
 
     useEffect(() => {
         const triggerRemove = async () => {
-            ipcRenderer.invoke("remove-recent", deleteQueue)
+            window.ipcRenderer.invoke("remove-recent", deleteQueue)
         }
-        ipcRenderer.on("trigger-remove", triggerRemove)
+        window.ipcRenderer.on("trigger-remove", triggerRemove)
         return () => {
-            ipcRenderer.removeListener("trigger-remove", triggerRemove)
+            window.ipcRenderer.removeListener("trigger-remove", triggerRemove)
         }
     }, [deleteQueue])
 
     const invokePlay = (info: any) => {
-        ipcRenderer.invoke("invoke-play", info)
+        window.ipcRenderer.invoke("invoke-play", info)
     }
 
     const checkYT = (info: any) => {

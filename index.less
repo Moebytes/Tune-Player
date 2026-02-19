@@ -1,30 +1,41 @@
-@import "assets/fonts/fira-sans.less";
-@import "assets/fonts/maven-pro.less";
-@import "assets/fonts/skranji.less";
-@import "assets/fonts/yusei-magic.less";
+@font-face {
+    font-family: "GenEi M Gothic v2";
+    src: url("assets/fonts/GenEiMGothic2-Medium.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Honoka Shin Antique-Kaku";
+    src: url("assets/fonts/Honoka-Shin-Antique-Kaku_M.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Tsunagi Gothic Black";
+    src: url("assets/fonts/TsunagiGothic.ttf") format("truetype");
+}
+
+@title-bar-height: 30px;
 
 :root {
-    --selection-color: #fc3476;
-    --bg-color: #ff4d76;
-    --title-color: #f53171;
-    --text-color: black;
-    --filter-color: #ff2c7d;
-    --filter-text: black;
-    --effect-color: #ff2c5a;
-    --effect-text: black;
-    --version-color: #ff3a7c;
-    --version-text: black;
-    --version-accept: #ff4492;
-    --version-reject: #ff3370;
-    --version-accept-text: black;
-    --version-reject-text: black;
-    --player-color: #ea224b;
-    --placeholder-color: #ff3a75;
-    --synth-color: #ff3068;
-    --synth-text: black;
-    --button-text: white;
-    --button-text-hover: black;
-    --recent-text: black;
+    --selectionColor: #151213;
+	--closeButton: #ff497d;
+	--minimizeButton: #ff399c;
+	--maximizeButton: #ff2eb9;
+	--background: #ffffff;
+	--navColor: #ffd6e5;
+	--iconColor: #ff63a1;
+	--textColor: #000;
+	--barColor: #fff;
+}
+
+.dark {
+	--closeButton: #ff497d;
+	--minimizeButton: #ff399c;
+	--maximizeButton: #ff2eb9;
+	--background: #000;
+	--navColor: #29091e;
+	--iconColor: #ff4c94;
+	--textColor: #fff;
+	--barColor: #000;
 }
 
 * {
@@ -71,7 +82,7 @@ p {
 }
 
 ::selection {
-    background-color: var(--selection-color);
+    background-color: var(--selectionColor);
     color: white;
 }
 

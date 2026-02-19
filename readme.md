@@ -2,7 +2,7 @@
    
 <img src="assets/images/readme.png">
 
-This is a simple music player app.
+A simple music player app.
 
 ### Features:
 - Play audio (MP3, WAV) and MIDI files
@@ -32,26 +32,20 @@ This is a simple music player app.
 
 Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0Kh/Tune-Player
 
-*New design is wip
-
 ### Installation
 
-Download the latest installer from the [releases](https://github.com/Moebytes/Music-Player/releases) tab. Updates can be installed automatically.
+Download from [releases](https://github.com/Moebytes/Tune-Player/releases). 
 
 ### MacOS
 
 On MacOS unsigned applications won't open, run this to remove the quarantine flag.
 ```
-xattr -d com.apple.quarantine "/Applications/Music Player.app"
+xattr -d com.apple.quarantine "/Applications/Tune Player.app"
 ```
 
-### Bugs and Requests
+### See Also
 
-Open an issue on my GitHub repository.
-
-### Also See
-
-- [Photo Viewer](https://github.com/Moebytes/Photo-Viewer)
-- [Video Player](https://github.com/Moebytes/Video-Player)
+- [Pic Viewer](https://github.com/Moebytes/Pic-Viewer)
+- [Motion Player](https://github.com/Moebytes/Motion-Player)
 
 

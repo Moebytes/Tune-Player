@@ -3,22 +3,7 @@ import playTinyHover from "../assets/icons/playTiny-hover.png"
 import pauseTiny from "../assets/icons/pauseTiny.png"
 import pauseTinyHover from "../assets/icons/pauseTiny-hover.png"
 import {guess} from "web-audio-beat-detector"
-import fs from "fs"
 import path from "path"
-import {Writable} from "stream"
-
-const audioExtensions = [".mp3", ".wav", ".ogg", ".flac", ".aac", ".mid"]
-
-class BufferWritable extends Writable {
-    private chunks: Buffer[] = []
-    _write(chunk: any, encoding: any, callback: (error?: Error | null) => void): void {
-        this.chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk, encoding))
-        callback()
-    }
-    getBuffer(): Buffer {
-        return Buffer.concat(this.chunks)
-    }
-}
 
 export default class Functions {
     public static arrayIncludes = (str: string, arr: string[]) => {
@@ -49,23 +34,6 @@ export default class Functions {
 
     public static timeout = async (ms: number) => {
         return new Promise((resolve) => setTimeout(resolve, ms))
-    }
-
-    public static removeDirectory = (dir: string) => {
-        if (!fs.existsSync(dir)) return
-        fs.readdirSync(dir).forEach((file: string) => {
-            const current = path.join(dir, file)
-            if (fs.lstatSync(current).isDirectory()) {
-                Functions.removeDirectory(current)
-            } else {
-                fs.unlinkSync(current)
-            }
-        })
-        try {
-            fs.rmdirSync(dir)
-        } catch (e) {
-            console.log(e)
-        }
     }
 
     public static logSlider = (position: number) => {
@@ -165,18 +133,6 @@ export default class Functions {
         }
     }
 
-    public static getSortedFiles = async (dir: string) => {
-        const files = await fs.promises.readdir(dir)
-        return files
-            .filter((f) => audioExtensions.includes(path.extname(f)))
-            .map(fileName => ({
-                name: fileName,
-                time: fs.statSync(`${dir}/${fileName}`).mtime.getTime(),
-            }))
-            .sort((a, b) => b.time - a.time)
-            .map(file => file.name)
-    }
-
     public static transposeNote = (note: string, transpose: number) => {
         const octave = Number(note.match(/\d+/)?.[0])
         note = note.replace(/\d+/g, "")
@@ -240,5 +196,32 @@ export default class Functions {
                 }
             }
         })
+    }
+
+    public static computedVar = (variable: string) => {
+        if (typeof window === "undefined") return "#FF579D"
+        return window.getComputedStyle(document.documentElement).getPropertyValue(variable)
+    }
+
+    public static colorizeSVG = (svg: string, varColor: string) => {
+        let code = svg
+        let isBase64 = svg.startsWith("data:image/svg+xml;base64,")
+        let hexColor = varColor.startsWith("#") ? varColor : Functions.computedVar(varColor)
+
+        if (isBase64) {
+            const base64 = svg.replace("data:image/svg+xml;base64,", "")
+            code = new TextDecoder("utf-8").decode(Uint8Array.from(atob(base64), c => c.charCodeAt(0)))
+        }
+
+        const updated = code
+            .replace(/fill\s*=\s*"(black|#000000|#000|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))"/gi, `fill="${hexColor}"`)
+            .replace(/stroke\s*=\s*"(black|#000000|#000|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))"/gi, `stroke="${hexColor}"`)
+
+        if (isBase64) {
+            const encoded = btoa(String.fromCharCode(...new TextEncoder().encode(updated)))
+            return `data:image/svg+xml;base64,${encoded}`
+        }
+
+        return updated
     }
 }

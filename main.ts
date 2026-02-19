@@ -1,20 +1,18 @@
 import {app, BrowserWindow, dialog, globalShortcut, ipcMain, shell} from "electron"
-import {autoUpdater} from "electron-updater"
 import * as localShortcut from "electron-shortcuts"
 import Store from "electron-store"
 import path from "path"
 import process from "process"
 import "./dev-app-update.yml"
-import pack from "./package.json"
 import Youtube from "youtube.ts"
 import Soundcloud from "soundcloud.ts"
 import functions from "./structures/functions"
+import mainFunctions from "./structures/mainFunctions"
 import fs from "fs"
 
-require("@electron/remote/main").initialize()
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
-autoUpdater.autoDownload = false
+
 const store = new Store()
 let filePath = ""
 
@@ -25,8 +23,33 @@ const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:129.0) Gecko
 let workletPath = path.join(app.getAppPath(), "../../structures")
 if (!fs.existsSync(workletPath)) workletPath = path.join(__dirname, "../structures")
 
+ipcMain.handle("close", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    win?.close()
+})
+
+ipcMain.handle("minimize", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    win?.minimize()
+})
+
+ipcMain.handle("maximize", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+
+    if (win.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win.maximize()
+    }
+})
+
 ipcMain.handle("show-in-folder", async (event, savePath: string) => {
   shell.showItemInFolder(path.normalize(savePath))
+})
+
+ipcMain.handle("save-file", async (event, filePath: string, buffer: Buffer) => {
+  fs.writeFileSync(filePath, buffer)
 })
 
 ipcMain.handle("get-bitcrusher-source", () => {
@@ -64,6 +87,14 @@ ipcMain.handle("get-theme", () => {
 
 ipcMain.handle("save-theme", (event, theme: string) => {
   store.set("theme", theme)
+})
+
+ipcMain.handle("get-os", () => {
+  return store.get("os", "mac")
+})
+
+ipcMain.handle("save-os", (event, os: string) => {
+  store.set("os", os)
 })
 
 ipcMain.handle("get-state", () => {
@@ -126,7 +157,7 @@ ipcMain.handle("get-previous", async (event, info: any) => {
   const song = info.song?.replace("file:///", "")
   if (fs.existsSync(song)) {
     const directory = path.dirname(song)
-    const files = await functions.getSortedFiles(directory)
+    const files = await mainFunctions.getSortedFiles(directory)
     const index = files.findIndex((f) => f === path.basename(song))
     if (index !== -1) {
       if (files[index - 1]) {
@@ -141,7 +172,7 @@ ipcMain.handle("get-next", async (event, info: any) => {
   const song = info.song?.replace("file:///", "")
   if (fs.existsSync(song)) {
     const directory = path.dirname(song)
-    const files = await functions.getSortedFiles(directory)
+    const files = await mainFunctions.getSortedFiles(directory)
     const index = files.findIndex((f) => f === path.basename(song))
     if (index !== -1) {
       if (files[index + 1]) {
@@ -233,11 +264,9 @@ ipcMain.handle("paste-loop", async (event) => {
   window?.webContents.send("paste-loop")
 })
 
-
 ipcMain.handle("copy-loop", async (event) => {
   window?.webContents.send("copy-loop")
 })
-
 
 ipcMain.handle("trigger-paste", async (event) => {
   window?.webContents.send("trigger-paste")
@@ -282,29 +311,6 @@ ipcMain.handle("select-file", async () => {
   return files.filePaths[0] ? files.filePaths[0] : null
 })
 
-ipcMain.handle("install-update", async (event) => {
-  if (process.platform === "darwin") {
-    const update = await autoUpdater.checkForUpdates()
-    const url = `${pack.repository.url}/releases/download/v${update.updateInfo.version}/${update.updateInfo.files[0].url}`
-    await shell.openExternal(url)
-    app.quit()
-  } else {
-    await autoUpdater.downloadUpdate()
-    autoUpdater.quitAndInstall()
-  }
-})
-
-ipcMain.handle("check-for-updates", async (event, startup: boolean) => {
-  window?.webContents.send("close-all-dialogs", "version")
-  const update = await autoUpdater.checkForUpdates()
-  const newVersion = update.updateInfo.version
-  if (pack.version === newVersion) {
-    if (!startup) window?.webContents.send("show-version-dialog", null)
-  } else {
-    window?.webContents.send("show-version-dialog", newVersion)
-  }
-})
-
 ipcMain.handle("upload-file", (event, file) => {
   window?.webContents.send("open-file", file)
 })
@@ -315,6 +321,14 @@ ipcMain.handle("get-opened-file", () => {
   } else {
     return filePath
   }
+})
+
+ipcMain.handle("trigger-open", (event) => {
+  window?.webContents.send("trigger-open")
+})
+
+ipcMain.handle("trigger-save", (event) => {
+  window?.webContents.send("trigger-save")
 })
 
 const openFile = (argv?: any) => {
@@ -344,10 +358,11 @@ if (!singleLock) {
   })
 
   app.on("ready", () => {
-    window = new BrowserWindow({width: 900, height: 630, minWidth: 720, minHeight: 450, frame: false, backgroundColor: "#f53171", center: true, roundedCorners: false, webPreferences: {nodeIntegration: true, contextIsolation: false, enableRemoteModule: true, webSecurity: false}})
-    window.loadFile(path.join(__dirname, "index.html"))
+    window = new BrowserWindow({width: 770, height: 620, minWidth: 720, minHeight: 450, frame: false, 
+      hasShadow: false, backgroundColor: "#f53171", center: true, webPreferences: {webSecurity: false,
+      preload: path.join(__dirname, "../preload/index.js")}})
+    window.loadFile(path.join(__dirname, "../renderer/index.html"))
     window.removeMenu()
-    require("@electron/remote/main").enable(window.webContents)
     openFile()
     window.on("closed", () => {
       window = null
@@ -361,8 +376,6 @@ if (!singleLock) {
     globalShortcut.register("Control+Shift+I", () => {
       window?.webContents.toggleDevTools()
     })
-    if (process.env.DEVELOPMENT === "true") {
-    }
   })
 }
 

@@ -1,5 +1,4 @@
-import React, {useEffect, useState, useRef} from "react"
-import {ipcRenderer, clipboard} from "electron" 
+import React, {useEffect, useRef} from "react"
 import path from "path"
 import Slider from "react-slider"
 import * as Tone from "tone"
@@ -43,10 +42,8 @@ import placeholder from "../assets/images/placeholder.png"
 import midiPlaceholder from "../assets/images/midi-placeholder.png"
 import checkbox from "../assets/icons/checkbox.png"
 import checkboxChecked from "../assets/icons/checkbox-checked.png"
-import RecentPlays from "./RecentPlays"
 import silence from "../assets/silence.mp3"
 import audioEncoder from "audio-encoder"
-import fs from "fs"
 import "./styles/audioplayer.less"
 
 let timer = null as any
@@ -67,17 +64,17 @@ const initialize = async () => {
     player = new Tone.Player(silence).sync().start()
     
     const context = Tone.getContext()
-    const soundtouchSource = await ipcRenderer.invoke("get-soundtouch-source")
+    const soundtouchSource = await window.ipcRenderer.invoke("get-soundtouch-source")
     const soundtouchBlob = new Blob([soundtouchSource], {type: "text/javascript"})
     soundtouchURL = window.URL.createObjectURL(soundtouchBlob)
-    await context.addAudioWorkletModule(soundtouchURL, "soundtouch")
+    await context.addAudioWorkletModule(soundtouchURL)
     soundtouchNode = context.createAudioWorkletNode("soundtouch-processor")
     staticSoundtouchNode = context.createAudioWorkletNode("soundtouch-processor")
     staticSoundtouchNode2 = context.createAudioWorkletNode("soundtouch-processor")
-    const lfoSource = await ipcRenderer.invoke("get-lfo-source")
+    const lfoSource = await window.ipcRenderer.invoke("get-lfo-source")
     const lfoBlob = new Blob([lfoSource], {type: "text/javascript"})
     lfoURL = window.URL.createObjectURL(lfoBlob)
-    await context.addAudioWorkletModule(lfoURL, "lfo")
+    await context.addAudioWorkletModule(lfoURL)
     lfoNode = context.createAudioWorkletNode("lfo-processor", {numberOfInputs: 2, outputChannelCount: [2]})
     gainNode = new Tone.Gain(1)
 
@@ -99,32 +96,32 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const progressBar = useRef(null) as any
     const volumeBar = useRef(null) as any
     const speedBar = useRef(null) as any
-    const speedCheckbox = useRef(null) as React.RefObject<HTMLImageElement>
-    const pitchCheckbox = useRef(null) as React.RefObject<HTMLImageElement>
-    const pitchBandCheckbox = useRef(null) as React.RefObject<HTMLImageElement>
+    const speedCheckbox = useRef<HTMLImageElement>(null)
+    const pitchCheckbox = useRef<HTMLImageElement>(null)
+    const pitchBandCheckbox = useRef<HTMLImageElement>(null)
     const pitchBar = useRef(null) as any
     const pitchLFOBar = useRef(null) as any
     const pitchBandBar = useRef(null) as any
-    const secondsProgress = useRef(null) as React.RefObject<HTMLSpanElement>
-    const pitchSlider = useRef(null) as React.RefObject<HTMLDivElement>
-    const pitchBandSlider = useRef(null) as React.RefObject<HTMLDivElement>
-    const secondsTotal = useRef(null) as React.RefObject<HTMLSpanElement>
+    const secondsProgress = useRef<HTMLSpanElement>(null)
+    const pitchSlider = useRef<HTMLDivElement>(null)
+    const pitchBandSlider = useRef<HTMLDivElement>(null)
+    const secondsTotal = useRef<HTMLSpanElement>(null)
     const abSlider = useRef(null) as React.RefObject<any>
-    const searchBox = useRef(null) as React.RefObject<HTMLInputElement>
-    const playButton = useRef(null) as React.RefObject<HTMLImageElement>
-    const previousButton = useRef(null) as React.RefObject<HTMLImageElement>
-    const nextButton = useRef(null) as React.RefObject<HTMLImageElement>
-    const volumeRef = useRef(null) as React.RefObject<HTMLImageElement>
-    const speedPopup = useRef(null) as React.RefObject<HTMLDivElement>
-    const pitchPopup = useRef(null) as React.RefObject<HTMLDivElement>
-    const speedImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const pitchImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const reverseImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const resetImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const loopImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const abLoopImg = useRef(null) as React.RefObject<HTMLImageElement>
-    const songCover = useRef(null) as React.RefObject<HTMLImageElement>
-    const songTitle = useRef(null) as React.RefObject<HTMLHeadingElement>
+    const searchBox = useRef<HTMLInputElement>(null)
+    const playButton = useRef<HTMLImageElement>(null)
+    const previousButton = useRef<HTMLImageElement>(null)
+    const nextButton = useRef<HTMLImageElement>(null) 
+    const volumeRef = useRef<HTMLImageElement>(null)
+    const speedPopup = useRef<HTMLDivElement>(null)
+    const pitchPopup = useRef<HTMLDivElement>(null)
+    const speedImg = useRef<HTMLImageElement>(null)
+    const pitchImg = useRef<HTMLImageElement>(null)
+    const reverseImg = useRef<HTMLImageElement>(null)
+    const resetImg = useRef<HTMLImageElement>(null)
+    const loopImg = useRef<HTMLImageElement>(null)
+    const abLoopImg = useRef<HTMLImageElement>(null)
+    const songCover = useRef<HTMLImageElement>(null)
+    const songTitle = useRef<HTMLHeadingElement>(null)
 
     useEffect(() => {
         progressBar.current?.resize()
@@ -136,7 +133,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     useEffect(() => {
         const getOpenedFile = async () => {
-            const file = await ipcRenderer.invoke("get-opened-file")
+            const file = await window.ipcRenderer.invoke("get-opened-file")
             if (file) upload(file)
         }
         getOpenedFile()
@@ -154,7 +151,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             play()
         }
         const triggerPaste = () => {
-            const text = clipboard.readText()
+            const text = window.clipboard.readText()
             if (text) searchBox.current!.value += text
         }
         const copyLoop = () => {
@@ -176,41 +173,41 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
         initState()
         abSlider.current.slider.style.display = "none"
-        ipcRenderer.on("open-file", openFile)
-        ipcRenderer.on("invoke-play", invokePlay)
-        ipcRenderer.on("change-play-state", changePlayState)
-        ipcRenderer.on("bitcrush", bitcrush)
-        ipcRenderer.on("reverb", reverb)
-        ipcRenderer.on("phaser", phaser)
-        ipcRenderer.on("delay", delay)
-        ipcRenderer.on("lowpass", lowpass)
-        ipcRenderer.on("highpass", highpass)
-        ipcRenderer.on("highshelf", highshelf)
-        ipcRenderer.on("lowshelf", lowshelf)
-        ipcRenderer.on("trigger-paste", triggerPaste)
-        ipcRenderer.on("copy-loop", copyLoop)
-        ipcRenderer.on("paste-loop", pasteLoop)
-        ipcRenderer.on("synth", updateSynth)
-        ipcRenderer.on("trigger-open", triggerOpen)
-        ipcRenderer.on("trigger-save", triggerSave)
+        window.ipcRenderer.on("open-file", openFile)
+        window.ipcRenderer.on("invoke-play", invokePlay)
+        window.ipcRenderer.on("change-play-state", changePlayState)
+        window.ipcRenderer.on("bitcrush", bitcrush)
+        window.ipcRenderer.on("reverb", reverb)
+        window.ipcRenderer.on("phaser", phaser)
+        window.ipcRenderer.on("delay", delay)
+        window.ipcRenderer.on("lowpass", lowpass)
+        window.ipcRenderer.on("highpass", highpass)
+        window.ipcRenderer.on("highshelf", highshelf)
+        window.ipcRenderer.on("lowshelf", lowshelf)
+        window.ipcRenderer.on("trigger-paste", triggerPaste)
+        window.ipcRenderer.on("copy-loop", copyLoop)
+        window.ipcRenderer.on("paste-loop", pasteLoop)
+        window.ipcRenderer.on("synth", updateSynth)
+        window.ipcRenderer.on("trigger-open", triggerOpen)
+        window.ipcRenderer.on("trigger-save", triggerSave)
         return () => {
-            ipcRenderer.removeListener("open-file", openFile)
-            ipcRenderer.removeListener("invoke-play", invokePlay)
-            ipcRenderer.removeListener("change-play-state", changePlayState)
-            ipcRenderer.removeListener("bitcrush", bitcrush)
-            ipcRenderer.removeListener("reverb", reverb)
-            ipcRenderer.removeListener("phaser", phaser)
-            ipcRenderer.removeListener("delay", delay)
-            ipcRenderer.removeListener("lowpass", lowpass)
-            ipcRenderer.removeListener("highpass", highpass)
-            ipcRenderer.removeListener("highshelf", highshelf)
-            ipcRenderer.removeListener("lowshelf", lowshelf)
-            ipcRenderer.removeListener("trigger-paste", triggerPaste)
-            ipcRenderer.removeListener("copy-loop", copyLoop)
-            ipcRenderer.removeListener("paste-loop", pasteLoop)
-            ipcRenderer.removeListener("synth", updateSynth)
-            ipcRenderer.removeListener("trigger-open", triggerOpen)
-            ipcRenderer.removeListener("trigger-save", triggerSave)
+            window.ipcRenderer.removeListener("open-file", openFile)
+            window.ipcRenderer.removeListener("invoke-play", invokePlay)
+            window.ipcRenderer.removeListener("change-play-state", changePlayState)
+            window.ipcRenderer.removeListener("bitcrush", bitcrush)
+            window.ipcRenderer.removeListener("reverb", reverb)
+            window.ipcRenderer.removeListener("phaser", phaser)
+            window.ipcRenderer.removeListener("delay", delay)
+            window.ipcRenderer.removeListener("lowpass", lowpass)
+            window.ipcRenderer.removeListener("highpass", highpass)
+            window.ipcRenderer.removeListener("highshelf", highshelf)
+            window.ipcRenderer.removeListener("lowshelf", lowshelf)
+            window.ipcRenderer.removeListener("trigger-paste", triggerPaste)
+            window.ipcRenderer.removeListener("copy-loop", copyLoop)
+            window.ipcRenderer.removeListener("paste-loop", pasteLoop)
+            window.ipcRenderer.removeListener("synth", updateSynth)
+            window.ipcRenderer.removeListener("trigger-open", triggerOpen)
+            window.ipcRenderer.removeListener("trigger-save", triggerSave)
         }
     }, [])
 
@@ -305,7 +302,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (event.shiftKey) {
                 event.preventDefault()
                 state.stepFlag = false
+                // @ts-ignore
                 speedBar.current.props.step = 0.01
+                // @ts-ignore
                 pitchBar.current.props.step = 1
             }
             /* Play on Spacebar */
@@ -340,7 +339,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const keyUp = (event: KeyboardEvent) => {
             if (!event.shiftKey) {
                 state.stepFlag = true
+                // @ts-ignore
                 speedBar.current.props.step = 0.5
+                // @ts-ignore
                 pitchBar.current.props.step = 12
             }
         }
@@ -354,7 +355,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const mouseDown = () => {
             if (state.stepFlag) {
                 state.stepFlag = false
+                // @ts-ignore
                 speedBar.current.props.step = 0.5
+                // @ts-ignore
                 pitchBar.current.props.step = 12
             }
             state.mouseFlag = true
@@ -454,8 +457,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const initialState = {...state}
 
     const initState = async () => {
-        const saved = await ipcRenderer.invoke("get-state")
-        const synthSaved = await ipcRenderer.invoke("get-synth-state")
+        const saved = await window.ipcRenderer.invoke("get-state")
+        const synthSaved = await window.ipcRenderer.invoke("get-synth-state")
         if (saved.preservesPitch !== undefined) {
             state.preservesPitch = saved.preservesPitch
             speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
@@ -532,7 +535,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const saveState = () => {
-        ipcRenderer.invoke("save-state", {reverse: state.reverse, pitch: state.pitch, speed: state.speed, preservesPitch: state.preservesPitch, 
+        window.ipcRenderer.invoke("save-state", {reverse: state.reverse, pitch: state.pitch, speed: state.speed, preservesPitch: state.preservesPitch, 
         pitchLFO: state.pitchLFO, pitchLFORate: state.pitchLFORate, splitBands: state.splitBands, splitBandFreq: state.splitBandFreq,
         loop: state.loop, abloop: state.abloop, loopStart: state.loopStart, loopEnd: state.loopEnd})
     }
@@ -683,14 +686,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.Transport.start()
         }
         functions.flipPlayTitle()
-        ipcRenderer.invoke("play-state-changed")
+        window.ipcRenderer.invoke("play-state-changed")
     }
 
     const stop = () => {
         if (!checkBuffer()) return
         Tone.Transport.stop()
         functions.flipPlayTitle()
-        ipcRenderer.invoke("play-state-changed")
+        window.ipcRenderer.invoke("play-state-changed")
     }
 
     const mute = () => {
@@ -1038,7 +1041,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         updateMetadata()
         stop()
         play()
-        ipcRenderer.invoke("reset-effects")
+        window.ipcRenderer.invoke("reset-effects")
         setTimeout(() => {
             applyEffects()
         }, 100)
@@ -1206,7 +1209,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const upload = async (file?: string) => {
-        if (!file) file = await ipcRenderer.invoke("select-file")
+        if (!file) file = await window.ipcRenderer.invoke("select-file")
         if (!file) return
         if (path.extname(file) === ".mid") return uploadMIDI(file)
         if (process.platform === "win32") if (!file.startsWith("file:///")) file = `file:///${file}`
@@ -1435,7 +1438,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 gainNode = new Tone.Gain(1)
                 audioNode.input = current
                 audioNode.output = gainNode.input
-                await offlineContext.addAudioWorkletModule(soundtouchURL, "soundtouch")
+                await offlineContext.addAudioWorkletModule(soundtouchURL)
                 const soundtouchNode = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
                 const staticSoundtouchNode = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
                 const staticSoundtouchNode2 = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
@@ -1447,7 +1450,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     const effectNode = new Tone.ToneAudioNode()
                     effectNode.input = current
                     effectNode.output = gainNode.input
-                    await offlineContext.addAudioWorkletModule(lfoURL, "lfo")
+                    await offlineContext.addAudioWorkletModule(lfoURL)
                     const lfoNode = offlineContext.createAudioWorkletNode("lfo-processor", {numberOfInputs: 2, outputChannelCount: [2]}) as any
                     lfoNode.parameters.get("bpm").value = state.bpm
                     lfoNode.parameters.get("lfoRate").value = state.pitchLFORate
@@ -1515,7 +1518,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const download = async () => {
         if (!checkBuffer()) return
         const defaultPath = `${functions.decodeEntities(state.songName)}${state.editCode}`
-        const savePath = await ipcRenderer.invoke("save-dialog", defaultPath)
+        const savePath = await window.ipcRenderer.invoke("save-dialog", defaultPath)
         if (!savePath) return
         if (path.extname(savePath) === ".mid") {
             if (!state.midi) return
@@ -1554,7 +1557,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     })
                 }
             })
-            fs.writeFileSync(savePath, Buffer.from(midi.toArray()))
+            await window.ipcRenderer.invoke("save-file", savePath, Buffer.from(midi.toArray()))
         } else {
             let duration = state.duration
             let start = 0
@@ -1575,14 +1578,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                         writer.addTag()
                         mp3 = await fetch(writer.getURL()).then((r) => r.arrayBuffer())
                     }
-                    fs.writeFileSync(savePath, Buffer.from(mp3, "binary"))
-                    ipcRenderer.invoke("show-in-folder", savePath)
+                    await window.ipcRenderer.invoke("save-file", savePath, Buffer.from(mp3, "binary"))
+                    window.ipcRenderer.invoke("show-in-folder", savePath)
                 })
             } else {
                 audioEncoder(audioBuffer.get(), null, null, async (blob: Blob) => {
                     const wav = await blob.arrayBuffer() as any
-                    fs.writeFileSync(savePath, Buffer.from(wav, "binary"))
-                    ipcRenderer.invoke("show-in-folder", savePath)
+                    await window.ipcRenderer.invoke("save-file", savePath, Buffer.from(wav, "binary"))
+                    window.ipcRenderer.invoke("show-in-folder", savePath)
                 })
             }
         }
@@ -1592,11 +1595,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (!value) value = searchBox.current?.value
         if (!value) return
         searchBox.current!.value = ""
-        const songBuffer = await ipcRenderer.invoke("get-song", value)
+        const songBuffer = await window.ipcRenderer.invoke("get-song", value)
         if (songBuffer) {
             state.midi = false
-            const songName = await ipcRenderer.invoke("get-song-name", value)
-            let artwork = await ipcRenderer.invoke("get-art", value)
+            const songName = await window.ipcRenderer.invoke("get-song-name", value)
+            let artwork = await window.ipcRenderer.invoke("get-art", value)
             if (artwork.includes("ytimg")) artwork = await functions.cropToCenterSquare(artwork)
             window.URL.revokeObjectURL(state.song)
             const blob = new Blob([new DataView(songBuffer)], {type: "audio/mpeg"})
@@ -1617,7 +1620,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const updateRecentFiles = () => {
-        ipcRenderer.invoke("update-recent", {
+        window.ipcRenderer.invoke("update-recent", {
             songName: state.songName, 
             song: state.song,
             songCover: state.songCover,
@@ -1629,7 +1632,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const previous = () => {
-        ipcRenderer.invoke("get-previous", {
+        window.ipcRenderer.invoke("get-previous", {
             songName: state.songName, 
             song: state.song,
             songCover: state.songCover,
@@ -1639,7 +1642,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const next = () => {
-        ipcRenderer.invoke("get-next", {
+        window.ipcRenderer.invoke("get-next", {
             songName: state.songName, 
             song: state.song,
             songCover: state.songCover,
@@ -1647,20 +1650,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             duration: state.midi ? state.duration : player.buffer.duration
         })
     }
-
-    /* JS Media Queries */
-    useEffect(() => {
-        const phoneMediaQuery = (query: MediaQueryListEvent | MediaQueryList) => {
-            if (query.matches) {
-                searchBox.current!.placeholder = "YT, SC, or BC link..."
-            } else {
-                searchBox.current!.placeholder = "Youtube, Soundcloud, or Bandcamp link..."
-            }
-        }
-        const media = window.matchMedia("(max-width: 65rem)")
-        media.addListener(phoneMediaQuery)
-        phoneMediaQuery(media)
-    }, [])
 
     const toggleHover = (query: string, hover?: boolean) => {
         if (query === "reverse") {
@@ -1781,10 +1770,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             if (!bitcrusherNode) {
                 const context = Tone.getContext()
-                const bitcrusherSource = await ipcRenderer.invoke("get-bitcrusher-source")
+                const bitcrusherSource = await window.ipcRenderer.invoke("get-bitcrusher-source")
                 const bitcrusherBlob = new Blob([bitcrusherSource], {type: "text/javascript"})
                 const bitcrusherURL = window.URL.createObjectURL(bitcrusherBlob)
-                await context.addAudioWorkletModule(bitcrusherURL, "bitcrusher")
+                await context.addAudioWorkletModule(bitcrusherURL)
                 bitcrusherNode = context.createAudioWorkletNode("bitcrush-processor")
             }
             bitcrusherNode.parameters.get("sampleRate").value = functions.logSlider2(state.sampleRate, 100, 44100)
@@ -1926,20 +1915,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     return (
         <main className="audio-player">
-            {/* Top Buttons */}
-            <section className="player-top-buttons">
-                <button onClick={() => upload()} className="upload-button"><span>Upload</span></button>
-                <button onClick={() => download()} className="download-button"><span>Download</span></button>
-                <form className="search-bar">
-                    <input type="text" ref={searchBox} placeholder="Youtube or Soundcloud link..." className="search-box" spellCheck="false"/>
-                    <button onClick={(event) => {event.preventDefault(); submit()}} className="search-button"><img src={searchIcon} width="30" height="30" className="search-icon"/></button>
-                </form>
-            </section>
-
-            {/* Recent Plays */}
-            <RecentPlays/>
-
-            {/* Player */}
             <section className="player" onDoubleClick={resetResize}>
                 <div className="player-resize" onMouseEnter={() => resizeOn()} onMouseLeave={() => resizeOff()}></div>
                 <img ref={songCover} className="player-img" src={state.songCover}/>

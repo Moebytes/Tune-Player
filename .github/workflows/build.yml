@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  APP_NAME: Music-Player
-  ARTIFACT_PREFIX: music-player
+  APP_NAME: Tune-Player
+  ARTIFACT_PREFIX: tune-player
 
 permissions:
   contents: write

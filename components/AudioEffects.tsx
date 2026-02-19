@@ -1,5 +1,4 @@
-import {ipcRenderer} from "electron"
-import React, {useContext, useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import Slider from "react-slider"
 import "./styles/audioeffects.less"
 
@@ -30,10 +29,10 @@ const AudioEffects: React.FunctionComponent = (props) => {
 
     const reset = () => {
         setState(initialState)
-        ipcRenderer.invoke("bitcrush", initialState)
-        ipcRenderer.invoke("reverb", initialState)
-        ipcRenderer.invoke("delay", initialState)
-        ipcRenderer.invoke("phaser", initialState)
+        window.ipcRenderer.invoke("bitcrush", initialState)
+        window.ipcRenderer.invoke("reverb", initialState)
+        window.ipcRenderer.invoke("delay", initialState)
+        window.ipcRenderer.invoke("phaser", initialState)
     }
 
     useEffect(() => {
@@ -43,14 +42,14 @@ const AudioEffects: React.FunctionComponent = (props) => {
         const closeAllDialogs = (event: any, ignore: any) => {
             if (ignore !== "effects") setVisible(false)
         }
-        ipcRenderer.on("show-effects-dialog", showeffectsDialog)
-        ipcRenderer.on("close-all-dialogs", closeAllDialogs)
-        ipcRenderer.on("reset-effects", reset)
+        window.ipcRenderer.on("show-effects-dialog", showeffectsDialog)
+        window.ipcRenderer.on("close-all-dialogs", closeAllDialogs)
+        window.ipcRenderer.on("reset-effects", reset)
 
         return () => {
-            ipcRenderer.removeListener("show-effects-dialog", showeffectsDialog)
-            ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
-            ipcRenderer.removeListener("reset-effects", reset)
+            window.ipcRenderer.removeListener("show-effects-dialog", showeffectsDialog)
+            window.ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
+            window.ipcRenderer.removeListener("reset-effects", reset)
         }
     }, [])
 
@@ -60,49 +59,49 @@ const AudioEffects: React.FunctionComponent = (props) => {
                 setState((prev) => {
                     return {...prev, sampleRate: value}
                 })
-                ipcRenderer.invoke("bitcrush", {...state, sampleRate: value})
+                window.ipcRenderer.invoke("bitcrush", {...state, sampleRate: value})
                 break
             case "reverbMix":
                 setState((prev) => {
                     return {...prev, reverbMix: value}
                 })
-                ipcRenderer.invoke("reverb", {...state, reverbMix: value})
+                window.ipcRenderer.invoke("reverb", {...state, reverbMix: value})
                 break
             case "reverbDecay":
                 setState((prev) => {
                     return {...prev, reverbDecay: value}
                 })
-                ipcRenderer.invoke("reverb", {...state, reverbDecay: value})
+                window.ipcRenderer.invoke("reverb", {...state, reverbDecay: value})
                 break
             case "delayMix":
                 setState((prev) => {
                     return {...prev, delayMix: value}
                 })
-                ipcRenderer.invoke("delay", {...state, delayMix: value})
+                window.ipcRenderer.invoke("delay", {...state, delayMix: value})
                 break
             case "delayTime":
                 setState((prev) => {
                     return {...prev, delayTime: value}
                 })
-                ipcRenderer.invoke("delay", {...state, delayTime: value})
+                window.ipcRenderer.invoke("delay", {...state, delayTime: value})
                 break
             case "delayFeedback":
                 setState((prev) => {
                     return {...prev, delayFeedback: value}
                 })
-                ipcRenderer.invoke("delay", {...state, delayFeedback: value})
+                window.ipcRenderer.invoke("delay", {...state, delayFeedback: value})
                 break
             case "phaserMix":
                 setState((prev) => {
                     return {...prev, phaserMix: value}
                 })
-                ipcRenderer.invoke("phaser", {...state, phaserMix: value})
+                window.ipcRenderer.invoke("phaser", {...state, phaserMix: value})
                 break
             case "phaserFrequency":
                 setState((prev) => {
                     return {...prev, phaserFrequency: value}
                 })
-                ipcRenderer.invoke("phaser", {...state, phaserFrequency: value})
+                window.ipcRenderer.invoke("phaser", {...state, phaserFrequency: value})
                 break
         }
     }

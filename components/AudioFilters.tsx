@@ -1,7 +1,5 @@
-import {ipcRenderer} from "electron"
-import React, {useContext, useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import Slider from "react-slider"
-import functions from "../structures/functions"
 import "./styles/audiofilters.less"
 
 const AudioFilters: React.FunctionComponent = (props) => {
@@ -31,10 +29,10 @@ const AudioFilters: React.FunctionComponent = (props) => {
 
     const reset = () => {
         setState(initialState)
-        ipcRenderer.invoke("lowpass", initialState)
-        ipcRenderer.invoke("highpass", initialState)
-        ipcRenderer.invoke("highshelf", initialState)
-        ipcRenderer.invoke("lowshelf", initialState)
+        window.ipcRenderer.invoke("lowpass", initialState)
+        window.ipcRenderer.invoke("highpass", initialState)
+        window.ipcRenderer.invoke("highshelf", initialState)
+        window.ipcRenderer.invoke("lowshelf", initialState)
     }
 
     useEffect(() => {
@@ -44,14 +42,14 @@ const AudioFilters: React.FunctionComponent = (props) => {
         const closeAllDialogs = (event: any, ignore: any) => {
             if (ignore !== "filters") setVisible(false)
         }
-        ipcRenderer.on("show-filters-dialog", showeffectsDialog)
-        ipcRenderer.on("close-all-dialogs", closeAllDialogs)
-        ipcRenderer.on("reset-effects", reset)
+        window.ipcRenderer.on("show-filters-dialog", showeffectsDialog)
+        window.ipcRenderer.on("close-all-dialogs", closeAllDialogs)
+        window.ipcRenderer.on("reset-effects", reset)
 
         return () => {
-            ipcRenderer.removeListener("show-filters-dialog", showeffectsDialog)
-            ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
-            ipcRenderer.removeListener("reset-effects", reset)
+            window.ipcRenderer.removeListener("show-filters-dialog", showeffectsDialog)
+            window.ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
+            window.ipcRenderer.removeListener("reset-effects", reset)
         }
     }, [])
 
@@ -61,56 +59,56 @@ const AudioFilters: React.FunctionComponent = (props) => {
                 setState((prev) => {
                     return {...prev, lowpassCutoff: value}
                 })
-                ipcRenderer.invoke("lowpass", {...state, lowpassCutoff: value})
+                window.ipcRenderer.invoke("lowpass", {...state, lowpassCutoff: value})
                 break
             case "highpassCutoff":
                 setState((prev) => {
                     return {...prev, highpassCutoff: value}
                 })
-                ipcRenderer.invoke("highpass", {...state, highpassCutoff: value})
+                window.ipcRenderer.invoke("highpass", {...state, highpassCutoff: value})
                 break
             case "highshelfCutoff":
                 setState((prev) => {
                     return {...prev, highshelfCutoff: value}
                 })
-                ipcRenderer.invoke("highshelf", {...state, highshelfCutoff: value})
+                window.ipcRenderer.invoke("highshelf", {...state, highshelfCutoff: value})
                 break
             case "highshelfGain":
                 setState((prev) => {
                     return {...prev, highshelfGain: value}
                 })
-                ipcRenderer.invoke("highshelf", {...state, highshelfGain: value})
+                window.ipcRenderer.invoke("highshelf", {...state, highshelfGain: value})
                 break
             case "lowshelfCutoff":
                 setState((prev) => {
                     return {...prev, lowshelfCutoff: value}
                 })
-                ipcRenderer.invoke("lowshelf", {...state, lowshelfCutoff: value})
+                window.ipcRenderer.invoke("lowshelf", {...state, lowshelfCutoff: value})
                 break
             case "lowshelfGain":
                 setState((prev) => {
                     return {...prev, lowshelfGain: value}
                 })
-                ipcRenderer.invoke("lowshelf", {...state, lowshelfGain: value})
+                window.ipcRenderer.invoke("lowshelf", {...state, lowshelfGain: value})
                 break
             
             case "filterResonance":
                 setState((prev) => {
                     return {...prev, filterResonance: value}
                 })
-                ipcRenderer.invoke("lowpass", {...state, filterResonance: value})
-                ipcRenderer.invoke("highpass", {...state, filterResonance: value})
-                ipcRenderer.invoke("lowshelf", {...state, filterResonance: value})
-                ipcRenderer.invoke("highshelf", {...state, filterResonance: value})
+                window.ipcRenderer.invoke("lowpass", {...state, filterResonance: value})
+                window.ipcRenderer.invoke("highpass", {...state, filterResonance: value})
+                window.ipcRenderer.invoke("lowshelf", {...state, filterResonance: value})
+                window.ipcRenderer.invoke("highshelf", {...state, filterResonance: value})
                 break
             case "filterSlope":
                 setState((prev) => {
                     return {...prev, filterSlope: value}
                 })
-                ipcRenderer.invoke("lowpass", {...state, filterSlope: value})
-                ipcRenderer.invoke("highpass", {...state, filterSlope: value})
-                ipcRenderer.invoke("lowshelf", {...state, filterSlope: value})
-                ipcRenderer.invoke("highshelf", {...state, filterSlope: value})
+                window.ipcRenderer.invoke("lowpass", {...state, filterSlope: value})
+                window.ipcRenderer.invoke("highpass", {...state, filterSlope: value})
+                window.ipcRenderer.invoke("lowshelf", {...state, filterSlope: value})
+                window.ipcRenderer.invoke("highshelf", {...state, filterSlope: value})
                 break
         }
     }

@@ -1,6 +1,6 @@
 dist
 build
 node_modules
-.env
 assets/audio
+.env
 .DS_Store

@@ -1,183 +1,149 @@
-import {ipcRenderer} from "electron"
-import {getCurrentWindow, shell} from "@electron/remote"
-import React, {useEffect, useState, useReducer, useRef} from "react"
-import closeButtonHover from "../assets/icons/close-hover.png"
-import closeButton from "../assets/icons/close.png"
-import appIcon from "../assets/icons/logo.gif"
-import maximizeButtonHover from "../assets/icons/maximize-hover.png"
-import maximizeButton from "../assets/icons/maximize.png"
-import minimizeButtonHover from "../assets/icons/minimize-hover.png"
-import minimizeButton from "../assets/icons/minimize.png"
-import starButtonHover from "../assets/icons/star-hover.png"
-import starButton from "../assets/icons/star.png"
-import updateButtonHover from "../assets/icons/updates-hover.png"
-import updateButton from "../assets/icons/updates.png"
-import playTiny from "../assets/icons/playTiny.png"
-import playTinyHover from "../assets/icons/playTiny-hover.png"
-import pauseTiny from "../assets/icons/pauseTiny.png"
-import pauseTinyHover from "../assets/icons/pauseTiny-hover.png"
-import fxButton from "../assets/icons/fx.png"
-import fxButtonHover from "../assets/icons/fx-hover.png"
-import eqButton from "../assets/icons/eq.png"
-import eqButtonHover from "../assets/icons/eq-hover.png"
-import darkButton from "../assets/icons/dark.png"
-import darkButtonHover from "../assets/icons/dark-hover.png"
-import lightButton from "../assets/icons/light.png"
-import lightButtonHover from "../assets/icons/light-hover.png"
-import synthButton from "../assets/icons/synth.png"
-import synthButtonHover from "../assets/icons/synth-hover.png"
-import pack from "../package.json"
-import path from "path"
+import React, {useState} from "react"
+import {useThemeSelector, useThemeActions} from "../store"
+import CircleIcon from "../assets/svg/circle.svg"
+import CircleCloseIcon from "../assets/svg/circle-close.svg"
+import CircleMinimizeIcon from "../assets/svg/circle-minimize.svg"
+import CircleMaximizeIcon from "../assets/svg/circle-maximize.svg"
+import CloseIcon from "../assets/svg/close.svg"
+import MinimizeIcon from "../assets/svg/minimize.svg"
+import MaximizeIcon from "../assets/svg/maximize.svg"
+import Icon from "../assets/svg/icon.svg"
+import UploadIcon from "../assets/svg/upload.svg"
+import DownloadIcon from "../assets/svg/download.svg"
+import SearchIcon from "../assets/svg/search.svg"
+import SawtoothIcon from "../assets/svg/sawtooth.svg"
+import EQIcon from "../assets/svg/eq.svg"
+import FXIcon from "../assets/svg/fx.svg"
+import LightIcon from "../assets/svg/light.svg"
+import DarkIcon from "../assets/svg/dark.svg"
+import WindowsIcon from "../assets/svg/windows.svg"
+import MacIcon from "../assets/svg/mac.svg"
 import "./styles/titlebar.less"
 
 const TitleBar: React.FunctionComponent = (props) => {
-    const [hoverClose, setHoverClose] = useState(false)
-    const [hoverMin, setHoverMin] = useState(false)
-    const [hoverMax, setHoverMax] = useState(false)
-    const [hoverReload, setHoverReload] = useState(false)
-    const [hoverStar, setHoverStar] = useState(false)
-    const [hoverPlay, setHoverPlay] = useState(false)
-    const [hoverFX, setHoverFX] = useState(false)
-    const [hoverEQ, setHoverEQ] = useState(false)
-    const [hoverTheme, setHoverTheme] = useState(false)
-    const [hoverSynth, setHoverSynth] = useState(false)
-    const [theme, setTheme] = useState("dark")
-    const [ignored, forceUpdate] = useReducer(x => x + 1, 0)
-    const playRef = useRef(null) as any
+    const {theme, os} = useThemeSelector()
+    const {setTheme, setOS} = useThemeActions()
+    const [iconHover, setIconHover] = useState(false)
 
-    useEffect(() => {
-        const playStateChanged = () => {
-            setTimeout(() => {
-                forceUpdate()
-            }, 200)
-        }
-        const initTheme = async () => {
-            const saved = await ipcRenderer.invoke("get-theme")
-            changeTheme(saved)
-        }
-        forceUpdate()
-        initTheme()
-        ipcRenderer.invoke("check-for-updates", true)
-        ipcRenderer.on("play-state-changed", playStateChanged)
-        return () => {
-            ipcRenderer.removeListener("play-state-changed", playStateChanged)
-        }
-    }, [])
+    const close = () => {
+        window.ipcRenderer.invoke("close")
+    }
 
-    const minimize = () => {
-        getCurrentWindow().minimize()
+    const minimize = async () => {
+        await window.ipcRenderer.invoke("minimize")
+        setIconHover(false)
     }
 
     const maximize = () => {
-        const window = getCurrentWindow()
-        if (window.isMaximized()) {
-            window.unmaximize()
-        } else {
-            window.maximize()
-        }
+        window.ipcRenderer.invoke("maximize")
     }
-    const close = () => {
-        getCurrentWindow().close()
+
+    const upload = () => {
+        window.ipcRenderer.invoke("trigger-open")
     }
-    const star = () => {
-        shell.openExternal(pack.repository.url)
+
+    const download = () => {
+        window.ipcRenderer.invoke("trigger-save")
     }
-    const update = () => {
-        ipcRenderer.invoke("check-for-updates", false)
+
+    const search = () => {
+
     }
 
     const play = () => {
-        ipcRenderer.invoke("change-play-state")
-    }
-
-    const getPlayState = () => {
-        const button = document.querySelector(".player-button.play-button") as HTMLImageElement
-        const name = path.basename(button?.src ?? "")
-        if (name.includes("play")) {
-            return "paused"
-        } else {
-            return "started"
-        }
+        window.ipcRenderer.invoke("change-play-state")
     }
 
     const fx = () => {
-        ipcRenderer.invoke("audio-effects")
+        window.ipcRenderer.invoke("audio-effects")
     }
 
     const eq = () => {
-        ipcRenderer.invoke("audio-filters")
+        window.ipcRenderer.invoke("audio-filters")
     }
 
     const synth = () => {
-        ipcRenderer.invoke("midi-synth")
+        window.ipcRenderer.invoke("midi-synth")
     }
 
-    const changeTheme = (value?: string) => {
-        let condition = value !== undefined ? value === "dark" : theme === "light"
-        if (condition) {
-            document.documentElement.style.setProperty("--bg-color", "#090409")
-            document.documentElement.style.setProperty("--title-color", "#090409")
-            document.documentElement.style.setProperty("--text-color", "#f53171")
-            document.documentElement.style.setProperty("--player-color", "#090409")
-            document.documentElement.style.setProperty("--filter-color", "#090409")
-            document.documentElement.style.setProperty("--filter-text", "#ff2c7d")
-            document.documentElement.style.setProperty("--effect-color", "#090409")
-            document.documentElement.style.setProperty("--effect-text", "#ff2c5a")
-            document.documentElement.style.setProperty("--placeholder-color", "#ff3a75")
-            document.documentElement.style.setProperty("--version-color", "#090409")
-            document.documentElement.style.setProperty("--version-text", "#ff3a7c")
-            document.documentElement.style.setProperty("--version-accept", "#090409")
-            document.documentElement.style.setProperty("--version-reject", "#090409")
-            document.documentElement.style.setProperty("--version-accept-text", "#ff4492")
-            document.documentElement.style.setProperty("--version-reject-text", "#ff3370")
-            document.documentElement.style.setProperty("--synth-color", "#090409")
-            document.documentElement.style.setProperty("--synth-text", "#ff3068")
-            document.documentElement.style.setProperty("--recent-text", "white")
-            setTheme("dark")
-            ipcRenderer.invoke("save-theme", "dark")
-        } else {
-            document.documentElement.style.setProperty("--bg-color", "#ff4d76")
-            document.documentElement.style.setProperty("--title-color", "#f53171")
-            document.documentElement.style.setProperty("--text-color", "black")
-            document.documentElement.style.setProperty("--player-color", "#ea224b")
-            document.documentElement.style.setProperty("--filter-color", "#ff2c7d")
-            document.documentElement.style.setProperty("--filter-text", "black")
-            document.documentElement.style.setProperty("--effect-color", "#ff2c5a")
-            document.documentElement.style.setProperty("--effect-text", "black")
-            document.documentElement.style.setProperty("--placeholder-color", "white")
-            document.documentElement.style.setProperty("--version-color", "#ff3a7c")
-            document.documentElement.style.setProperty("--version-text", "black")
-            document.documentElement.style.setProperty("--version-accept", "#ff4492")
-            document.documentElement.style.setProperty("--version-reject", "#ff3370")
-            document.documentElement.style.setProperty("--version-accept-text", "black")
-            document.documentElement.style.setProperty("--version-reject-text", "black")
-            document.documentElement.style.setProperty("--synth-color", "#ff3068")
-            document.documentElement.style.setProperty("--synth-text", "black")
-            document.documentElement.style.setProperty("--recent-text", "black")
-            setTheme("light")
-            ipcRenderer.invoke("save-theme", "light")
-        }
+    const switchTheme = () => {
+        setTheme(theme === "light" ? "dark" : "light")
+    }
+
+    const switchOSStyle = () => {
+        setOS(os === "mac" ? "windows" : "mac")
+    }
+
+    const macTitleBar = () => {
+        return (
+            <div className="title-group-container">
+                <div className="title-mac-container" onMouseEnter={() => setIconHover(true)} onMouseLeave={() => setIconHover(false)}>
+                    {iconHover ? <>
+                    <CircleCloseIcon className="title-mac-button" color="var(--closeButton)" onClick={close}/>
+                    <CircleMinimizeIcon className="title-mac-button" color="var(--minimizeButton)" onClick={minimize}/>
+                    <CircleMaximizeIcon className="title-mac-button" color="var(--maximizeButton)" onClick={maximize}/>
+                    </> : <>
+                    <CircleIcon className="title-mac-button" color="var(--closeButton)" onClick={close}/>
+                    <CircleIcon className="title-mac-button" color="var(--minimizeButton)" onClick={minimize}/>
+                    <CircleIcon className="title-mac-button" color="var(--maximizeButton)" onClick={maximize}/>
+                    </>}
+                </div>
+                <div className="title-container">
+                    <Icon className="app-icon"/>
+                    <span className="title">Tune Player</span>
+                </div>
+                <div className="title-button-container">
+                    <UploadIcon className="title-bar-button" onClick={upload}/>
+                    <DownloadIcon className="title-bar-button" onClick={download}/>
+                    <SearchIcon className="title-bar-button" onClick={search}/>
+                    <SawtoothIcon className="title-bar-button" onClick={synth}/>
+                    <EQIcon className="title-bar-button" onClick={eq}/>
+                    <FXIcon className="title-bar-button" onClick={fx}/>
+                    {theme === "light" ?
+                    <LightIcon className="title-bar-button" onClick={switchTheme}/> :
+                    <DarkIcon className="title-bar-button" onClick={switchTheme}/>}
+                    <MacIcon className="title-bar-button" onClick={switchOSStyle}/>
+                </div>
+            </div>
+        )
+    }
+
+    const windowsTitleBar = () => {
+        return (
+            <>
+            <div className="title-group-container">
+                <div className="title-container">
+                    <Icon className="app-icon"/>
+                    <span className="title">Tune Player</span>
+                </div>
+                <div className="title-button-container">
+                    <UploadIcon className="title-bar-button" onClick={upload}/>
+                    <DownloadIcon className="title-bar-button" onClick={download}/>
+                    <SearchIcon className="title-bar-button" onClick={search}/>
+                    <SawtoothIcon className="title-bar-button" onClick={synth}/>
+                    <EQIcon className="title-bar-button" onClick={eq}/>
+                    <FXIcon className="title-bar-button" onClick={fx}/>
+                    {theme === "light" ?
+                    <LightIcon className="title-bar-button" onClick={switchTheme}/> :
+                    <DarkIcon className="title-bar-button" onClick={switchTheme}/>}
+                    <WindowsIcon className="title-bar-button" onClick={switchOSStyle}/>
+                </div>
+            </div>
+            <div className="title-group-container">
+                <div className="title-win-container">
+                    <MinimizeIcon className="title-win-button" color="var(--minimizeButton)" onClick={minimize}/>
+                    <MaximizeIcon className="title-win-button" color="var(--maximizeButton)" onClick={maximize} style={{marginLeft: "4px"}}/>
+                    <CloseIcon className="title-win-button" color="var(--closeButton)" onClick={close}/>
+                </div>
+            </div>
+            </>
+        )
     }
 
     return (
         <section className="title-bar">
                 <div className="title-bar-drag-area">
-                    <div className="title-container">
-                        <img className="app-icon" height="22" width="22" src={appIcon}/>
-                        <p><span className="title">Music Player v{pack.version}</span></p>
-                    </div>
-                    <div className="title-bar-buttons">
-                        <img src={hoverTheme ? (theme === "light" ? darkButtonHover : lightButtonHover) : (theme === "light" ? darkButton : lightButton)} height="20" width="20" className="title-bar-button theme-button" onClick={() => changeTheme()} onMouseEnter={() => setHoverTheme(true)} onMouseLeave={() => setHoverTheme(false)}/>
-                        <img src={hoverSynth ? synthButtonHover : synthButton} height="20" width="20" className="title-bar-button synth-button" onClick={synth} onMouseEnter={() => setHoverSynth(true)} onMouseLeave={() => setHoverSynth(false)}/>
-                        <img src={hoverEQ ? eqButtonHover : eqButton} height="20" width="20" className="title-bar-button eq-button" onClick={eq} onMouseEnter={() => setHoverEQ(true)} onMouseLeave={() => setHoverEQ(false)}/>
-                        <img src={hoverFX ? fxButtonHover : fxButton} height="20" width="20" className="title-bar-button fx-button" onClick={fx} onMouseEnter={() => setHoverFX(true)} onMouseLeave={() => setHoverFX(false)}/>
-                        <img ref={playRef} src={hoverPlay ? (getPlayState() === "started" ? pauseTinyHover : playTinyHover) : (getPlayState() === "started" ? pauseTiny : playTiny)} height="20" width="20" className="title-bar-button play-title-button" onClick={play} onMouseEnter={() => setHoverPlay(true)} onMouseLeave={() => setHoverPlay(false)}/>
-                        <img src={hoverStar ? starButtonHover : starButton} height="20" width="20" className="title-bar-button star-button" onClick={star} onMouseEnter={() => setHoverStar(true)} onMouseLeave={() => setHoverStar(false)}/>
-                        <img src={hoverReload ? updateButtonHover : updateButton} height="20" width="20" className="title-bar-button update-button" onClick={update} onMouseEnter={() => setHoverReload(true)} onMouseLeave={() => setHoverReload(false)}/>
-                        <img src={hoverMin ? minimizeButtonHover : minimizeButton} height="20" width="20" className="title-bar-button" onClick={minimize} onMouseEnter={() => setHoverMin(true)} onMouseLeave={() => setHoverMin(false)}/>
-                        <img src={hoverMax ? maximizeButtonHover : maximizeButton} height="20" width="20" className="title-bar-button" onClick={maximize} onMouseEnter={() => setHoverMax(true)} onMouseLeave={() => setHoverMax(false)}/>
-                        <img src={hoverClose ? closeButtonHover : closeButton} height="20" width="20" className="title-bar-button" onClick={close} onMouseEnter={() => setHoverClose(true)} onMouseLeave={() => setHoverClose(false)}/>
-                    </div>
+                    {os === "mac" ? macTitleBar() : windowsTitleBar()}
                 </div>
         </section>
     )

@@ -1,4 +1,3 @@
-import {ipcRenderer} from "electron"
 import React, {useEffect, useRef, useState} from "react"
 import Slider from "react-slider"
 import monoButton from "../assets/icons/mono.png"
@@ -78,7 +77,7 @@ const MIDISynth: React.FunctionComponent = (props) => {
             setVisible((prev) => {
                 if (prev === true) return false
                 if (prev === false) {
-                    ipcRenderer.invoke("get-synth-state").then((newState) => {
+                    window.ipcRenderer.invoke("get-synth-state").then((newState) => {
                         setState((prev) => {
                             return {...prev, ...newState}
                         })
@@ -90,14 +89,14 @@ const MIDISynth: React.FunctionComponent = (props) => {
         const closeAllDialogs = (event: any, ignore: any) => {
             if (ignore !== "synth") setVisible(false)
         }
-        ipcRenderer.on("show-synth-dialog", showsynthDialog)
-        ipcRenderer.on("close-all-dialogs", closeAllDialogs)
-        ipcRenderer.on("reset-synth", reset)
+        window.ipcRenderer.on("show-synth-dialog", showsynthDialog)
+        window.ipcRenderer.on("close-all-dialogs", closeAllDialogs)
+        window.ipcRenderer.on("reset-synth", reset)
 
         return () => {
-            ipcRenderer.removeListener("show-synth-dialog", showsynthDialog)
-            ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
-            ipcRenderer.removeListener("reset-synth", reset)
+            window.ipcRenderer.removeListener("show-synth-dialog", showsynthDialog)
+            window.ipcRenderer.removeListener("close-all-dialogs", closeAllDialogs)
+            window.ipcRenderer.removeListener("reset-synth", reset)
         }
     }, [])
 
@@ -107,37 +106,37 @@ const MIDISynth: React.FunctionComponent = (props) => {
                 setState((prev) => {
                     return {...prev, attack: value}
                 })
-                ipcRenderer.invoke("synth", {...state, attack: value})
+                window.ipcRenderer.invoke("synth", {...state, attack: value})
                 break
             case "decay":
                 setState((prev) => {
                     return {...prev, decay: value}
                 })
-                ipcRenderer.invoke("synth", {...state, decay: value})
+                window.ipcRenderer.invoke("synth", {...state, decay: value})
                 break
             case "sustain":
                 setState((prev) => {
                     return {...prev, sustain: value}
                 })
-                ipcRenderer.invoke("synth", {...state, sustain: value})
+                window.ipcRenderer.invoke("synth", {...state, sustain: value})
                 break
             case "release":
                 setState((prev) => {
                     return {...prev, release: value}
                 })
-                ipcRenderer.invoke("synth", {...state, release: value})
+                window.ipcRenderer.invoke("synth", {...state, release: value})
                 break
             case "portamento":
                 setState((prev) => {
                     return {...prev, portamento: value}
                 })
-                ipcRenderer.invoke("synth", {...state, portamento: value})
+                window.ipcRenderer.invoke("synth", {...state, portamento: value})
                 break
             case "poly":
                 setState((prev) => {
                     return {...prev, poly: value}
                 })
-                ipcRenderer.invoke("synth", {...state, poly: value})
+                window.ipcRenderer.invoke("synth", {...state, poly: value})
                 break
             }
     }
@@ -179,7 +178,7 @@ const MIDISynth: React.FunctionComponent = (props) => {
         setState((prev) => {
             return {...prev, wave, basicWave: type}
         })
-        ipcRenderer.invoke("synth", {...state, wave, waveType, basicWave: type})
+        window.ipcRenderer.invoke("synth", {...state, wave, waveType, basicWave: type})
     }
 
     const changeWaveType = (type: string) => {
