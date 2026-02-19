@@ -5,6 +5,7 @@ declare global {
     platform: "mac" | "windows",
     ipcRenderer: {
       invoke: (channel: string, ...args: any[]) => Promise<any>
+      send: (channel: string, ...args: any[]) => void
       on: (channel: string, listener: (...args: any[]) => void) => any
       removeListener: (channel: string, listener: (...args: any[]) => void) => void
     },
@@ -19,6 +20,9 @@ declare global {
 contextBridge.exposeInMainWorld("ipcRenderer", {
     invoke: async (channel: string, ...args: any[]) => {
             return ipcRenderer.invoke(channel, ...args)
+    },
+    send: (channel: string, ...args: any[]) => {
+        ipcRenderer.send(channel, ...args)
     },
     on: (channel: string, listener: (...args: any[]) => void) => {
         const subscription = (_event: IpcRendererEvent, ...args: any[]) =>

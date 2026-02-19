@@ -18,8 +18,10 @@ export default defineConfig({
         rspack(config) {
             config.module = config.module || {}
             config.module.rules = config.module.rules || []
+            config.externals = config.externals || {}
 
             config.externals = {
+                "electron-click-drag-plugin": "commonjs electron-click-drag-plugin",
                 "react-native-fs": "reactNativeFs",
                 "ffmpeg-static": "ffmpeg"
             }

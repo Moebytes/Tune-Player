@@ -2,7 +2,7 @@
   "name": "tune-player",
   "version": "0.9.9",
   "description": "A simple music player",
-  "main": "dist/main.js",
+  "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run clean && rsbuild build && electron dist/main/index.js",
     "build": "npm run clean ./build && rsbuild build && electron-builder -p never",
@@ -145,6 +145,7 @@
     "audio-encoder": "^1.0.4",
     "bootstrap": "^5.3.8",
     "browser-id3-writer": "^6.3.1",
+    "electron-click-drag-plugin": "^2.0.2",
     "electron-shortcuts": "^0.4.0",
     "electron-store": "^8.0.0",
     "jsmediatags": "^3.9.7",

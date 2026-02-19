@@ -1,9 +1,9 @@
 import {app, BrowserWindow, dialog, globalShortcut, ipcMain, shell} from "electron"
 import * as localShortcut from "electron-shortcuts"
+import dragAddon from "electron-click-drag-plugin"
 import Store from "electron-store"
 import path from "path"
 import process from "process"
-import "./dev-app-update.yml"
 import Youtube from "youtube.ts"
 import Soundcloud from "soundcloud.ts"
 import functions from "./structures/functions"
@@ -42,6 +42,13 @@ ipcMain.handle("maximize", (event) => {
     } else {
       win.maximize()
     }
+})
+
+ipcMain.on("moveWindow", () => {
+  const handle = window?.getNativeWindowHandle()
+  if (!handle) return
+  const windowID = process.platform === "linux" ? handle.readUInt32LE(0) : handle
+  dragAddon.startDrag(windowID)
 })
 
 ipcMain.handle("show-in-folder", async (event, savePath: string) => {
