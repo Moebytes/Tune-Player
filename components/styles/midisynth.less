@@ -19,7 +19,7 @@
     width: 60%;
     height: 57%;
     border-radius: 10px;
-    background-color: var(--synth-color);
+    background-color: var(--navColor);
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -47,9 +47,9 @@
 }
 
 .synth-title {
-    color: var(--synth-text);
+    color: var(--textColor);
     font-size: 20px;
-    font-family: "Maven Pro", sans-serif;
+    font-family: "GenEi M Gothic v2", sans-serif;
     user-select: text;
     cursor: text;
     &::selection {
@@ -78,8 +78,8 @@
 .synth-text {
     user-select: text;
     cursor: text;
-    color: var(--synth-text);
-    font-family: "Yusei Magic", sans-serif;
+    color: var(--textColor);
+    font-family: "GenEi M Gothic v2", sans-serif;
     font-size: 15px;
     &::selection {
         background-color: #ff6ea6;
@@ -105,8 +105,8 @@
 }
 
 .synth-slider-thumb {
-    content: url("../../assets/icons/volume-thumb.png");
-    background-color: transparent;
+    background-color: var(--iconColor);
+    border-radius: 50%;
     margin-top: -7px;
     border: none;
     height: 1.3rem;

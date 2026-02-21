@@ -3,7 +3,6 @@ import {useThemeSelector, useThemeActions} from "./store"
 import {Themes, OS} from "./reducers/themeReducer"
 
 const lightColorList = {
-    "--selectionColor": "#ff73a2",
 	"--closeButton": "#ff497d",
 	"--minimizeButton": "#ff399c",
 	"--maximizeButton": "#ff2eb9",

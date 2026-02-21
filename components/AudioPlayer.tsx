@@ -6,42 +6,23 @@ import {Midi} from '@tonejs/midi'
 import {ID3Writer} from "browser-id3-writer"
 import jsmediatags from "jsmediatags"
 import functions from "../structures/functions"
-import searchIcon from "../assets/icons/search-icon.png"
-import playIcon from "../assets/icons/play.png"
-import playHoverIcon from "../assets/icons/play-hover.png"
-import pauseIcon from "../assets/icons/pause.png"
-import pauseHoverIcon from "../assets/icons/pause-hover.png"
-import reverseIcon from "../assets/icons/reverse.png"
-import reverseHoverIcon from "../assets/icons/reverse-hover.png"
-import reverseActiveIcon from "../assets/icons/reverse-active.png"
-import speedIcon from "../assets/icons/speed.png"
-import speedHoverIcon from "../assets/icons/speed-hover.png"
-import speedActiveIcon from "../assets/icons/speed-active.png"
-import pitchIcon from "../assets/icons/pitch.png"
-import pitchHoverIcon from "../assets/icons/pitch-hover.png"
-import pitchActiveIcon from "../assets/icons/pitch-active.png"
-import loopIcon from "../assets/icons/loop.png"
-import loopHoverIcon from "../assets/icons/loop-hover.png"
-import loopActiveIcon from "../assets/icons/loop-active.png"
-import abLoopIcon from "../assets/icons/abloop.png"
-import abLoopHoverIcon from "../assets/icons/abloop-hover.png"
-import abLoopActiveIcon from "../assets/icons/abloop-active.png"
-import resetIcon from "../assets/icons/clear.png"
-import resetHoverIcon from "../assets/icons/clear-hover.png"
-import volumeIcon from "../assets/icons/volume.png"
-import volumeHoverIcon from "../assets/icons/volume-hover.png"
-import volumeLowIcon from "../assets/icons/volume-low.png"
-import volumeLowHoverIcon from "../assets/icons/volume-low-hover.png"
-import muteIcon from "../assets/icons/mute.png"
-import muteHoverIcon from "../assets/icons/mute-hover.png"
-import previousIcon from "../assets/icons/previous.png"
-import previousHoverIcon from "../assets/icons/previous-hover.png"
-import nextIcon from "../assets/icons/next.png"
-import nextHoverIcon from "../assets/icons/next-hover.png"
+import PlayIcon from "../assets/svg/play.svg"
+import PauseIcon from "../assets/svg/pause.svg"
+import ReverseIcon from "../assets/svg/reverse.svg"
+import SpeedIcon from "../assets/svg/speed.svg"
+import PitchIcon from "../assets/svg/pitch.svg"
+import LoopIcon from "../assets/svg/loop.svg"
+import ABLoopIcon from "../assets/svg/abloop.svg"
+import RevertIcon from "../assets/svg/revert.svg"
+import VolumeIcon from "../assets/svg/volume.svg"
+import VolumeLowIcon from "../assets/svg/volume-low.svg"
+import VolumeMuteIcon from "../assets/svg/volume-mute.svg"
+import PrevIcon from "../assets/svg/prev.svg"
+import NextIcon from "../assets/svg/next.svg"
+import CheckboxIcon from "../assets/svg/checkbox.svg"
+import CheckboxCheckedIcon from "../assets/svg/checkbox-checked.svg"
 import placeholder from "../assets/images/placeholder.png"
 import midiPlaceholder from "../assets/images/midi-placeholder.png"
-import checkbox from "../assets/icons/checkbox.png"
-import checkboxChecked from "../assets/icons/checkbox-checked.png"
 import silence from "../assets/silence.mp3"
 import audioEncoder from "audio-encoder"
 import "./styles/audioplayer.less"
@@ -243,31 +224,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
         window.setInterval(updateProgress, 1000)
 
-        /*Change play button image*/
-        const onPause = () => {
-            if (state.playHover) {
-                if (playButton.current?.src !== playHoverIcon) playButton.current!.src = playHoverIcon
-            } else {
-                if (playButton.current?.src !== playIcon) playButton.current!.src = playIcon
-            }
-        }
-
-        const onStop = () => {
-            if (state.playHover) {
-                if (playButton.current?.src !== playHoverIcon) playButton.current!.src = playHoverIcon
-            } else {
-                if (playButton.current?.src !== playIcon) playButton.current!.src = playIcon
-            }
-        }
-
-        const onStart = () => {
-            if (state.playHover) {
-                if (playButton.current?.src !== pauseHoverIcon) playButton.current!.src = pauseHoverIcon
-            } else {
-                if (playButton.current?.src !== pauseIcon) playButton.current!.src = pauseIcon
-            }
-        }
-
         /* Close speed and pitch boxes */
         const onWindowClick = (event: any) => {
             if (speedPopup.current?.style.display === "flex") {
@@ -282,16 +238,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             }
         }
 
-        Tone.Transport.on("pause", onPause)
-        Tone.Transport.on("stop", onStop)
-        Tone.Transport.on("start", onStart)
         window.addEventListener("click", onWindowClick)
         return () => {
             window.clearInterval(undefined)
-            //window.clearTimeout(timeout)
-            Tone.Transport.off("pause", onPause)
-            Tone.Transport.off("stop", onStop)
-            Tone.Transport.off("start", onStart)
             window.removeEventListener("click", onWindowClick)
         }
     }, [])
@@ -461,53 +410,33 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const synthSaved = await window.ipcRenderer.invoke("get-synth-state")
         if (saved.preservesPitch !== undefined) {
             state.preservesPitch = saved.preservesPitch
-            speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
+            //speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
         }
         if (saved.pitchLFO !== undefined) {
             state.pitchLFO = saved.pitchLFO
-            pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
+            //pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
         }
         if (saved.pitchLFORate !== undefined) {
             state.pitchLFORate = saved.pitchLFORate
         }
         if (saved.splitBands !== undefined) {
             state.splitBands = saved.splitBands
-            pitchBandCheckbox.current!.src = state.splitBands ? checkboxChecked : checkbox
+            //pitchBandCheckbox.current!.src = state.splitBands ? checkboxChecked : checkbox
         }
         if (saved.splitBandFreq !== undefined) {
             state.splitBandFreq = saved.splitBandFreq
         }
         if (saved.speed !== undefined) {
             state.speed = saved.speed
-            if (state.speed === 1) {
-                speedImg.current!.src = speedIcon
-            } else {
-                speedImg.current!.src = speedActiveIcon
-            }
         }
         if (saved.pitch !== undefined) {
             state.pitch = saved.pitch
-            if (state.pitch === 0) {
-                pitchImg.current!.src = pitchIcon
-            } else {
-                pitchImg.current!.src = pitchActiveIcon
-            }
         }
         if (saved.reverse !== undefined) {
             state.reverse = saved.reverse
-            if (state.reverse === false) {
-                reverseImg.current!.src = reverseIcon
-            } else {
-                reverseImg.current!.src = reverseActiveIcon
-            }
         }
         if (saved.loop !== undefined) {
             state.loop = saved.loop
-            if (state.loop === false) {
-                loopImg.current!.src = loopIcon
-            } else {
-                loopImg.current!.src = loopActiveIcon
-            }
         }
         if (synthSaved.wave !== undefined) state.wave = synthSaved.wave
         if (synthSaved.attack !== undefined) state.attack = synthSaved.attack
@@ -685,14 +614,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (state.midi) await playMIDI()
             Tone.Transport.start()
         }
-        functions.flipPlayTitle()
         window.ipcRenderer.invoke("play-state-changed")
     }
 
     const stop = () => {
         if (!checkBuffer()) return
         Tone.Transport.stop()
-        functions.flipPlayTitle()
         window.ipcRenderer.invoke("play-state-changed")
     }
 
@@ -705,15 +632,15 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.Destination.volume.value = functions.logSlider(state.volume)
             if (state.volume <= 0.5) {
                 if (state.volumeHover) {
-                    volumeRef.current!.src = volumeLowHoverIcon
+                    //volumeRef.current!.src = volumeLowHoverIcon
                 } else {
-                    volumeRef.current!.src = volumeLowIcon
+                    //volumeRef.current!.src = volumeLowIcon
                 }
             } else {
                 if (state.volumeHover) {
-                    volumeRef.current!.src = volumeHoverIcon
+                    //volumeRef.current!.src = volumeHoverIcon
                 } else {
-                    volumeRef.current!.src = volumeIcon
+                    //volumeRef.current!.src = volumeIcon
                 }
             }
         } else {
@@ -721,9 +648,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.Destination.mute = true
             updateVolumePos(0)
             if (state.volumeHover) {
-                volumeRef.current!.src = muteHoverIcon
+                //volumeRef.current!.src = muteHoverIcon
             } else {
-                volumeRef.current!.src = muteIcon
+                //volumeRef.current!.src = muteIcon
             }
         }
     }
@@ -737,24 +664,24 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.Destination.mute = true
             state.muted = true
             if (state.volumeHover) {
-                volumeRef.current!.src = muteHoverIcon
+                //volumeRef.current!.src = muteHoverIcon
             } else {
-                volumeRef.current!.src = muteIcon
+                //volumeRef.current!.src = muteIcon
             }
         } else {
             Tone.Destination.mute = false
             state.muted = false
             if (state.volume <= 0.5) {
                 if (state.volumeHover) {
-                    volumeRef.current!.src = volumeLowHoverIcon
+                    //volumeRef.current!.src = volumeLowHoverIcon
                 } else {
-                    volumeRef.current!.src = volumeLowIcon
+                    //volumeRef.current!.src = volumeLowIcon
                 }
             } else {
                 if (state.volumeHover) {
-                    volumeRef.current!.src = volumeHoverIcon
+                    //volumeRef.current!.src = volumeHoverIcon
                 } else {
-                    volumeRef.current!.src = volumeIcon
+                    //volumeRef.current!.src = volumeIcon
                 }
             }
         }
@@ -764,9 +691,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const speed = async (value?: number | string, applyState?: any) => {
         if (value) state.speed = Number(value)
         if (state.speed === 1) {
-            speedImg.current!.src = speedIcon
+            //speedImg.current!.src = speedIcon
         } else {
-            speedImg.current!.src = speedActiveIcon
+            //speedImg.current!.src = speedActiveIcon
         }
         if (state.midi) {
             await playMIDI()
@@ -802,7 +729,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const preservesPitch = (value?: boolean) => {
         state.preservesPitch = value !== undefined ? value : !state.preservesPitch
-        speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
+        //speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
         saveState()
         speed()
     }
@@ -810,9 +737,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const pitch = async (value?: number | string, applyState?: any) => {
         if (value !== undefined) state.pitch = Number(value) 
         if (state.pitch === 0) {
-            pitchImg.current!.src = pitchIcon
+            //pitchImg.current!.src = pitchIcon
         } else {
-            pitchImg.current!.src = pitchActiveIcon
+            //pitchImg.current!.src = pitchActiveIcon
         }
         if (state.midi) {
             if (!applyState) await playMIDI()
@@ -835,7 +762,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const pitchLFO = (value?: boolean) => {
         state.pitchLFO = value !== undefined ? value : !state.pitchLFO
-        pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
+        //pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
         pitchLFOStyle()
         saveState()
         applyEffects()
@@ -860,7 +787,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const pitchBands = (value?: boolean) => {
         state.splitBands = value !== undefined ? value : !state.splitBands
-        pitchBandCheckbox.current!.src = state.splitBands ? checkboxChecked : checkbox
+        //pitchBandCheckbox.current!.src = state.splitBands ? checkboxChecked : checkbox
         pitchBandStyle()
         saveState()
         applyEffects()
@@ -885,11 +812,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (value === false || (state.reverse === true)) {
                 Tone.Transport.seconds = val
                 state.reverse = false
-                reverseImg.current!.src = reverseIcon
+                //reverseImg.current!.src = reverseIcon
             } else {
                 Tone.Transport.seconds = val
                 state.reverse = true
-                reverseImg.current!.src = reverseActiveIcon
+                //reverseImg.current!.src = reverseActiveIcon
             }
             await playMIDI()
         } else {
@@ -903,12 +830,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 if (!applyState) Tone.Transport.seconds = val
                 state.reverse = false
                 currentPlayer.reverse = false
-                reverseImg.current!.src = reverseIcon
+                //reverseImg.current!.src = reverseIcon
             } else {
                 if (!applyState) Tone.Transport.seconds = val
                 state.reverse = true
                 currentPlayer.reverse = true
-                reverseImg.current!.src = reverseActiveIcon
+                //reverseImg.current!.src = reverseActiveIcon
             }
         }
         applyAB(state.duration)
@@ -1021,8 +948,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(state.pitch)
         lfoNode.parameters.get("lfoRate").value = state.pitchLFORate
         lfoNode.port.postMessage({lfoShape: state.wave})
-        speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
-        pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
+        //speedCheckbox.current!.src = !state.preservesPitch ? checkboxChecked : checkbox
+        //pitchCheckbox.current!.src = state.pitchLFO ? checkboxChecked : checkbox
         updateSpeedPos(state.speed)
         updatePitchPos(state.pitch)
         updatePitchLFOPos(state.pitchLFORate)
@@ -1031,11 +958,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         Tone.Transport.loop = state.loop
         updateABSliderPos([0, 1000])
         abSlider.current.slider.style.display = "none";
-        speedImg.current!.src = speedIcon
-        loopImg.current!.src = state.loop ? loopActiveIcon : loopIcon
-        reverseImg.current!.src = reverseIcon
-        pitchImg.current!.src = pitchIcon
-        abLoopImg.current!.src = abLoopIcon
+        //speedImg.current!.src = speedIcon
+        //loopImg.current!.src = state.loop ? loopActiveIcon : loopIcon
+        //reverseImg.current!.src = reverseIcon
+        //pitchImg.current!.src = pitchIcon
+        //abLoopImg.current!.src = abLoopIcon
         pitchLFOStyle()
         duration()
         updateMetadata()
@@ -1051,12 +978,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const loop = async (value?: boolean) => {
         let condition = value !== undefined ? value === false : state.loop === true
         if (condition) {
-            loopImg.current!.src = loopIcon
+            //loopImg.current!.src = loopIcon
             state.loop = false
             Tone.Transport.loop = false
             if (state.abloop) toggleAB()
         } else {
-            loopImg.current!.src = loopActiveIcon
+            //loopImg.current!.src = loopActiveIcon
             state.loop = true
             Tone.Transport.loop = true
             Tone.Transport.loopStart = state.abloop ? (state.loopStart / 1000) * state.duration : 0
@@ -1278,8 +1205,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             state.abloop = true
             state.loop = true
             if (!state.loopEnd) state.loopEnd = 1000
-            loopImg.current!.src = loopActiveIcon
-            abLoopImg.current!.src = abLoopActiveIcon
+            //loopImg.current!.src = loopActiveIcon
+            //abLoopImg.current!.src = abLoopActiveIcon
             Tone.Transport.loop = true
             Tone.Transport.loopStart = (state.loopStart / 1000) * state.duration
             Tone.Transport.loopEnd = (state.loopEnd / 1000) * state.duration
@@ -1287,7 +1214,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             abSlider.current.slider.style.display = "none"
             state.abloop = false
-            abLoopImg.current!.src = abLoopIcon
+            //abLoopImg.current!.src = abLoopIcon
             Tone.Transport.loopStart = 0
             Tone.Transport.loopEnd = state.duration
         }
@@ -1651,118 +1578,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         })
     }
 
-    const toggleHover = (query: string, hover?: boolean) => {
-        if (query === "reverse") {
-            if (hover) {
-                reverseImg.current!.src = reverseHoverIcon
-            } else {
-                if (state.reverse) {
-                    reverseImg.current!.src = reverseActiveIcon
-                } else {
-                    reverseImg.current!.src = reverseIcon
-                }
-            }
-        } else if (query === "speed") {
-            if (hover) {
-                speedImg.current!.src = speedHoverIcon
-            } else {
-                if (state.speed === 1) {
-                    speedImg.current!.src = speedIcon
-                } else {
-                    speedImg.current!.src = speedActiveIcon
-                }
-            }
-        } else if (query === "pitch") {
-            if (hover) {
-                pitchImg.current!.src = pitchHoverIcon
-            } else {
-                if (state.pitch === 0) {
-                    pitchImg.current!.src = pitchIcon
-                } else {
-                    pitchImg.current!.src = pitchActiveIcon
-                }
-            }
-        } else if (query === "loop") {
-            if (hover) {
-                loopImg.current!.src = loopHoverIcon
-            } else {
-                if (state.loop) {
-                    loopImg.current!.src = loopActiveIcon
-                } else {
-                    loopImg.current!.src = loopIcon
-                }
-            }
-        } else if (query === "abloop") {
-            if (hover) {
-                abLoopImg.current!.src = abLoopHoverIcon
-            } else {
-                if (state.abloop) {
-                    abLoopImg.current!.src = abLoopActiveIcon
-                } else {
-                    abLoopImg.current!.src = abLoopIcon
-                }
-            }
-        } else if (query === "reset") {
-            if (hover) {
-                resetImg.current!.src = resetHoverIcon
-            } else {
-                resetImg.current!.src = resetIcon
-            }
-        } else if (query === "play") {
-            if (hover) {
-                state.playHover = true
-                if (Tone.Transport.state === "started") {
-                    playButton.current!.src = pauseHoverIcon
-                } else {
-                    playButton.current!.src = playHoverIcon
-                }
-            } else {
-                state.playHover = false
-                if (Tone.Transport.state === "started") {
-                    playButton.current!.src = pauseIcon
-                } else {
-                    playButton.current!.src = playIcon
-                }
-            }
-        } else if (query === "previous") {
-            if (hover) {
-                previousButton.current!.src = previousHoverIcon
-            } else {
-                previousButton.current!.src = previousIcon
-            }
-        } else if (query === "next") {
-            if (hover) {
-                nextButton.current!.src = nextHoverIcon
-            } else {
-                nextButton.current!.src = nextIcon
-            }
-        } else if (query === "volume") {
-            if (hover) {
-                state.volumeHover = true
-                if (state.volume === 0 || state.muted) {
-                    volumeRef.current!.src = muteHoverIcon
-                } else {
-                    if (state.volume <= 0.5) {
-                        volumeRef.current!.src = volumeLowHoverIcon
-                    } else {
-                        volumeRef.current!.src = volumeHoverIcon
-                    }
-                }
-            } else {
-                state.volumeHover = false
-                if (state.volume === 0 || state.muted) {
-                    volumeRef.current!.src = muteIcon
-                } else {
-                    if (state.volume <= 0.5) {
-                        volumeRef.current!.src = volumeLowIcon
-                    } else {
-                        volumeRef.current!.src = volumeIcon
-                    }
-                }
-            }
-        }
-    }
-
     const bitcrush = async (event: any, effect?: any, noApply?: boolean) => {
         state = {...state, ...effect}
         if (state.sampleRate === 100) {
@@ -1924,53 +1739,53 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             <h2 ref={songTitle} className="player-text">{state.songName}</h2>
                         </div>
                         <div className="play-button-container">
-                            <img className="player-button" src={previousIcon} ref={previousButton} onClick={() => previous()} width="25" height="25" onMouseEnter={() => toggleHover("previous", true)} onMouseLeave={() => toggleHover("previous")}/>
-                            <img className="player-button play-button" src={playIcon} ref={playButton} onClick={() => play()} width="45" height="45" onMouseEnter={() => toggleHover("play", true)} onMouseLeave={() => toggleHover("play")}/>
-                            <img className="player-button" src={nextIcon} ref={nextButton} onClick={() => next()} width="25" height="25" onMouseEnter={() => toggleHover("next", true)} onMouseLeave={() => toggleHover("next")}/>
+                            <PrevIcon className="player-button" ref={previousButton} onClick={() => previous()}/>
+                            <PlayIcon className="player-button play-button" ref={playButton} onClick={() => play()}/>
+                            <NextIcon className="player-button" ref={nextButton} onClick={() => next()}/>
                         </div>
                         <div className="progress-text-container">
                             <p className="player-text"><span ref={secondsProgress}>0:00</span> <span>/</span> <span ref={secondsTotal}>0:00</span></p>
                         </div>
                         <div className="volume-container">
-                            <img className="player-button" src={volumeIcon} ref={volumeRef} onClick={() => mute()} onMouseEnter={() => toggleHover("volume", true)} onMouseLeave={() => toggleHover("volume")} width="30" height="30"/>
+                            <VolumeIcon className="player-button" ref={volumeRef} onClick={() => mute()}/>
                             <Slider className="volume-slider" trackClassName="volume-slider-track" thumbClassName="volume-slider-handle" ref={volumeBar} onChange={(value) => {updateVolumePos(value); volume(value)}} min={0} max={1} step={0.05} defaultValue={1}/>
                         </div>
                     </div>
                     <div className="player-row">
-                    <img className="player-button" ref={reverseImg} src={reverseIcon} onClick={() => reverse()} width="30" height="30" onMouseEnter={() => toggleHover("reverse", true)} onMouseLeave={() => toggleHover("reverse")}/>
+                        <ReverseIcon className="player-button" ref={reverseImg} onClick={() => reverse()}/>
                         <div className="speed-popup-container" ref={speedPopup} style={({display: "none"})}>
                             <div className="speed-popup">
                                 <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} onChange={(value) => speed(value)} min={0.5} max={4} step={0.5} defaultValue={1}/>
                                 <div className="speed-checkbox-container">
                                     <p className="speed-text">Pitch?</p>
-                                    <img className="speed-checkbox" ref={speedCheckbox} src={!state.preservesPitch ? checkboxChecked : checkbox} onClick={() => preservesPitch()}/>
+                                    <CheckboxIcon className="speed-checkbox" ref={speedCheckbox} onClick={() => preservesPitch()}/>
                                 </div>       
                             </div>
                         </div>
-                        <img className="player-button" src={speedIcon} ref={speedImg} onClick={() => showSpeedPopup()} width="30" height="30" onMouseEnter={() => toggleHover("speed", true)} onMouseLeave={() => toggleHover("speed")}/>
+                        <SpeedIcon className="player-button" ref={speedImg} onClick={() => showSpeedPopup()}/>
                         <div className="pitch-popup-container" ref={pitchPopup} style={({display: "none"})}>
                             <div className="pitch-popup">
                                 <Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBar} onChange={(value) => pitch(value)} min={-24} max={24} step={12} defaultValue={0}/>
                                 <div className="pitch-checkbox-container">
                                     <p className="speed-text">LFO?</p>
-                                    <img className="pitch-checkbox" ref={pitchCheckbox} src={state.pitchLFO ? checkboxChecked : checkbox} onClick={() => pitchLFO()}/>
+                                    <CheckboxIcon className="pitch-checkbox" ref={pitchCheckbox} onClick={() => pitchLFO()}/>
                                 </div>
                                 <div ref={pitchSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchLFOBar} onChange={(value) => pitchLFORate(value)} min={0} max={5} step={1} defaultValue={1}/></div>
                                 <div className="pitch-checkbox-container">
                                     <p className="speed-text">Split Bands?</p>
-                                    <img className="pitch-checkbox" ref={pitchBandCheckbox} src={state.splitBands ? checkboxChecked : checkbox} onClick={() => pitchBands()}/>
+                                    <CheckboxIcon className="pitch-checkbox" ref={pitchBandCheckbox} onClick={() => pitchBands()}/>
                                 </div>
                                 <div ref={pitchBandSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBandBar} onChange={(value) => pitchBandFreq(value)} min={0} max={1000} step={1} defaultValue={500}/></div>
                             </div>
                         </div>
-                        <img className="player-button" src={pitchIcon} ref={pitchImg} onClick={() => showPitchPopup()} width="30" height="30" onMouseEnter={() => toggleHover("pitch", true)} onMouseLeave={() => toggleHover("pitch")}/>
+                        <PitchIcon className="player-button" ref={pitchImg} onClick={() => showPitchPopup()}/>
                         <div className="progress-container" onMouseUp={() => state.dragging = false}>
                             <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle" ref={progressBar} min={0} max={1000} onBeforeChange={() => state.dragging = true} onChange={(value) => {updateSliderPos(value / 10); updateProgressText(value)}} onAfterChange={(value) => seek(value / 10)} defaultValue={0}/>
                             <Slider className="ab-slider" trackClassName="ab-slider-track" thumbClassName="ab-slider-thumb" ref={abSlider} min={0} max={1000} defaultValue={[0, 1000]} onBeforeChange={() => state.dragging = true} onChange={(value) => {updateABSliderPos(value); updateProgressTextAB(value)}} onAfterChange={(value) => abloop(value)} pearling minDistance={1}/>
                         </div>
-                        <img className="player-button" ref={loopImg} src={loopIcon} onClick={() => loop()} width="30" height="30" onMouseEnter={() => toggleHover("loop", true)} onMouseLeave={() => toggleHover("loop")}/>
-                        <img className="player-button" ref={abLoopImg} src={abLoopIcon} onClick={() => toggleAB()} width="30" height="30" onMouseEnter={() => toggleHover("abloop", true)} onMouseLeave={() => toggleHover("abloop")}/>
-                        <img className="player-button" ref={resetImg} src={resetIcon} onClick={() => reset()} width="30" height="30" onMouseEnter={() => toggleHover("reset", true)} onMouseLeave={() => toggleHover("reset")}/>
+                        <LoopIcon className="player-button" ref={loopImg} onClick={() => loop()}/>
+                        <ABLoopIcon className="player-button" ref={abLoopImg} onClick={() => toggleAB()}/>
+                        <RevertIcon className="player-button" ref={resetImg} onClick={() => reset()}/>
                     </div>
                 </div>
             </section>

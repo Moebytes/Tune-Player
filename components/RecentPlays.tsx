@@ -1,9 +1,7 @@
 import React, {useEffect, useReducer, useState} from "react"
 import square from "../assets/images/square.png"
-import pageLeftButton from "../assets/icons/page-left.png"
-import pageLeftButtonHover from "../assets/icons/page-left-hover.png"
-import pageRightButton from "../assets/icons/page-right.png"
-import pageRightButtonHover from "../assets/icons/page-right-hover.png"
+import LeftArrowIcon from "../assets/svg/left-arrow.svg"
+import RightArrowIcon from "../assets/svg/right-arrow.svg"
 import "./styles/recentplays.less"
 
 let recent = [] as any[]
@@ -101,8 +99,8 @@ const RecentPlays: React.FunctionComponent = (props) => {
             <div className="recent-title-container">
                 <p className="recent-title">Recent Plays</p>
                 <div className="recent-page-buttons">
-                    <img src={pageLeftHover ? pageLeftButtonHover : pageLeftButton} className="recent-page-button" onClick={previousPage} onMouseEnter={() => setPageLeftHover(true)} onMouseLeave={() => setPageLeftHover(false)}/>
-                    <img src={pageRightHover ? pageRightButtonHover : pageRightButton} className="recent-page-button" onClick={nextPage} onMouseEnter={() => setPageRightHover(true)} onMouseLeave={() => setPageRightHover(false)}/>
+                    <LeftArrowIcon className="recent-page-button" onClick={previousPage}/>
+                    <RightArrowIcon className="recent-page-button" onClick={nextPage}/>
                 </div>
             </div>
             {generateJSX()}

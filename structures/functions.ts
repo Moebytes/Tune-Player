@@ -1,7 +1,3 @@
-import playTiny from "../assets/icons/playTiny.png"
-import playTinyHover from "../assets/icons/playTiny-hover.png"
-import pauseTiny from "../assets/icons/pauseTiny.png"
-import pauseTinyHover from "../assets/icons/pauseTiny-hover.png"
 import {guess} from "web-audio-beat-detector"
 import path from "path"
 
@@ -113,24 +109,6 @@ export default class Functions {
         // @ts-ignore
         blob.name = name
         return blob as File
-    }
-
-    public static flipPlayTitle = () => {
-        const button = document.querySelector(".title-bar-button.play-title-button") as HTMLImageElement
-        const name = path.basename(button?.src ?? "")
-        if (name.includes("hover")) {
-            if (name.includes("play")) {
-                button.src = pauseTinyHover
-            } else {
-                button.src = playTinyHover
-            }
-        } else {
-            if (name.includes("play")) {
-                button.src = pauseTiny
-            } else {
-                button.src = playTiny
-            }
-        }
     }
 
     public static transposeNote = (note: string, transpose: number) => {

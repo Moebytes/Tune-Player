@@ -44,8 +44,9 @@ ipcMain.handle("maximize", (event) => {
     }
 })
 
-ipcMain.on("moveWindow", () => {
-  const handle = window?.getNativeWindowHandle()
+ipcMain.on("moveWindow", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const handle = win?.getNativeWindowHandle()
   if (!handle) return
   const windowID = process.platform === "linux" ? handle.readUInt32LE(0) : handle
   dragAddon.startDrag(windowID)
@@ -365,12 +366,15 @@ if (!singleLock) {
   })
 
   app.on("ready", () => {
-    window = new BrowserWindow({width: 770, height: 620, minWidth: 720, minHeight: 450, frame: false, 
-      hasShadow: false, backgroundColor: "#f53171", center: true, webPreferences: {webSecurity: false,
+    window = new BrowserWindow({width: 770, height: 620, minWidth: 720, minHeight: 450, frame: false, transparent: true,
+      show: false, hasShadow: false, backgroundColor: "#29091e", center: true, webPreferences: {webSecurity: false,
       preload: path.join(__dirname, "../preload/index.js")}})
     window.loadFile(path.join(__dirname, "../renderer/index.html"))
     window.removeMenu()
     openFile()
+    window.webContents.on("did-finish-load", () => {
+      window?.show()
+    })
     window.on("closed", () => {
       window = null
     })

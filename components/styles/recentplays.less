@@ -5,7 +5,8 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    margin-top: calc(@title-bar-height + 7px);
+    margin-top: calc(@title-bar-height + 20px);
+    gap: 15px;
 }
 
 .recent-title-container {
@@ -13,15 +14,16 @@
     width: 100%;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 30px;
 }
 
 .recent-title {
     margin-left: 25px;
     user-select: text;
-    color: var(--recent-text);
     font-size: 30px;
-    font-family: "Skranji", sans-serif;
+    font-family: "GenEi M Gothic v2", sans-serif;
+    color: var(--textColor);
 }
 
 .recent-row-container {
@@ -66,11 +68,14 @@
 }
 
 .recent-page-buttons {
-    
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
 }
 
 .recent-page-button {
-    cursor: pointer;
-    width: 35px;
-    margin-right: 15px;
+    height: 25px;
+    width: auto;
+    color: var(--iconColor);
 }
