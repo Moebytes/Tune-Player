@@ -175,31 +175,4 @@ export default class Functions {
             }
         })
     }
-
-    public static computedVar = (variable: string) => {
-        if (typeof window === "undefined") return "#FF579D"
-        return window.getComputedStyle(document.documentElement).getPropertyValue(variable)
-    }
-
-    public static colorizeSVG = (svg: string, varColor: string) => {
-        let code = svg
-        let isBase64 = svg.startsWith("data:image/svg+xml;base64,")
-        let hexColor = varColor.startsWith("#") ? varColor : Functions.computedVar(varColor)
-
-        if (isBase64) {
-            const base64 = svg.replace("data:image/svg+xml;base64,", "")
-            code = new TextDecoder("utf-8").decode(Uint8Array.from(atob(base64), c => c.charCodeAt(0)))
-        }
-
-        const updated = code
-            .replace(/fill\s*=\s*"(black|#000000|#000|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))"/gi, `fill="${hexColor}"`)
-            .replace(/stroke\s*=\s*"(black|#000000|#000|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))"/gi, `stroke="${hexColor}"`)
-
-        if (isBase64) {
-            const encoded = btoa(String.fromCharCode(...new TextEncoder().encode(updated)))
-            return `data:image/svg+xml;base64,${encoded}`
-        }
-
-        return updated
-    }
 }

@@ -48,14 +48,14 @@ const initialize = async () => {
     const soundtouchSource = await window.ipcRenderer.invoke("get-soundtouch-source")
     const soundtouchBlob = new Blob([soundtouchSource], {type: "text/javascript"})
     soundtouchURL = window.URL.createObjectURL(soundtouchBlob)
-    await context.addAudioWorkletModule(soundtouchURL)
+    await context.addAudioWorkletModule(soundtouchURL, "soundtouch")
     soundtouchNode = context.createAudioWorkletNode("soundtouch-processor")
     staticSoundtouchNode = context.createAudioWorkletNode("soundtouch-processor")
     staticSoundtouchNode2 = context.createAudioWorkletNode("soundtouch-processor")
     const lfoSource = await window.ipcRenderer.invoke("get-lfo-source")
     const lfoBlob = new Blob([lfoSource], {type: "text/javascript"})
     lfoURL = window.URL.createObjectURL(lfoBlob)
-    await context.addAudioWorkletModule(lfoURL)
+    await context.addAudioWorkletModule(lfoURL, "lfo")
     lfoNode = context.createAudioWorkletNode("lfo-processor", {numberOfInputs: 2, outputChannelCount: [2]})
     gainNode = new Tone.Gain(1)
 
@@ -308,17 +308,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
         const mouseUp = () => {
             state.mouseFlag = false
-            state.resizeFlag = false
-        }
-
-        const mouseMove = (event: MouseEvent) => {
-            if (state.resizeFlag && state.mouseFlag) {
-                const element = document.querySelector(".player") as HTMLElement
-                let newHeight = window.innerHeight - event.pageY
-                if (newHeight < 100) newHeight = 100
-                if (newHeight > 200) return
-                element.style.height = `${newHeight}px`
-            }
         }
 
         window.addEventListener("keydown", keyDown, {passive: false})
@@ -326,7 +315,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.addEventListener("wheel", wheel, {passive: false})
         window.addEventListener("mousedown", mouseDown)
         window.addEventListener("mouseup", mouseUp)
-        window.addEventListener("mousemove", mouseMove)
         return () => {
             window.clearInterval(undefined)
             window.removeEventListener("keydown", keyDown)
@@ -334,7 +322,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.removeEventListener("wheel", wheel)
             window.removeEventListener("mousedown", mouseDown)
             window.removeEventListener("mouseup", mouseUp)
-            window.removeEventListener("mousemove", mouseMove)
         }
     })
 
@@ -387,7 +374,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         release: 0.5,
         poly: true,
         portamento: 0,
-        resizeFlag: false,
         mouseFlag: false,
         savedLoop: [0, 1000],
         pitchLFO: false,
@@ -422,15 +408,35 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
         if (saved.speed !== undefined) {
             state.speed = saved.speed
+            if (state.speed === 1) {
+                //speedImg.current!.src = speedIcon
+            } else {
+                //speedImg.current!.src = speedActiveIcon
+            }
         }
         if (saved.pitch !== undefined) {
             state.pitch = saved.pitch
+            if (state.pitch === 0) {
+                //pitchImg.current!.src = pitchIcon
+            } else {
+                //pitchImg.current!.src = pitchActiveIcon
+            }
         }
         if (saved.reverse !== undefined) {
             state.reverse = saved.reverse
+            if (state.reverse === false) {
+                //reverseImg.current!.src = reverseIcon
+            } else {
+                //reverseImg.current!.src = reverseActiveIcon
+            }
         }
         if (saved.loop !== undefined) {
             state.loop = saved.loop
+            if (state.loop === false) {
+                //loopImg.current!.src = loopIcon
+            } else {
+                //loopImg.current!.src = loopActiveIcon
+            }
         }
         if (synthSaved.wave !== undefined) state.wave = synthSaved.wave
         if (synthSaved.attack !== undefined) state.attack = synthSaved.attack
@@ -1359,7 +1365,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 gainNode = new Tone.Gain(1)
                 audioNode.input = current
                 audioNode.output = gainNode.input
-                await offlineContext.addAudioWorkletModule(soundtouchURL)
+                await offlineContext.addAudioWorkletModule(soundtouchURL, "soundtouch")
                 const soundtouchNode = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
                 const staticSoundtouchNode = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
                 const staticSoundtouchNode2 = offlineContext.createAudioWorkletNode("soundtouch-processor") as any
@@ -1371,7 +1377,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     const effectNode = new Tone.ToneAudioNode()
                     effectNode.input = current
                     effectNode.output = gainNode.input
-                    await offlineContext.addAudioWorkletModule(lfoURL)
+                    await offlineContext.addAudioWorkletModule(lfoURL, "lfo")
                     const lfoNode = offlineContext.createAudioWorkletNode("lfo-processor", {numberOfInputs: 2, outputChannelCount: [2]}) as any
                     lfoNode.parameters.get("bpm").value = state.bpm
                     lfoNode.parameters.get("lfoRate").value = state.pitchLFORate
@@ -1582,7 +1588,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 const bitcrusherSource = await window.ipcRenderer.invoke("get-bitcrusher-source")
                 const bitcrusherBlob = new Blob([bitcrusherSource], {type: "text/javascript"})
                 const bitcrusherURL = window.URL.createObjectURL(bitcrusherBlob)
-                await context.addAudioWorkletModule(bitcrusherURL)
+                await context.addAudioWorkletModule(bitcrusherURL, "bitcrush")
                 bitcrusherNode = context.createAudioWorkletNode("bitcrush-processor")
             }
             bitcrusherNode.parameters.get("sampleRate").value = functions.logSlider2(state.sampleRate, 100, 44100)
@@ -1684,20 +1690,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
     }
 
-    const resizeOn = () => {
-        document.documentElement.style.cursor = "ns-resize"
-        state.resizeFlag = true
-    }
-
-    const resizeOff = () => {
-        document.documentElement.style.cursor = "default"
-    }
-
-    const resetResize = () => {
-        const element = document.querySelector(".player") as HTMLElement
-        element.style.height = `150px`
-    }
-
     const showSpeedPopup = () => {
         if (speedPopup.current!.style.display === "flex") {
             speedPopup.current!.style.display = "none"
@@ -1724,8 +1716,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     return (
         <main className="audio-player">
-            <section className="player" onDoubleClick={resetResize}>
-                <div className="player-resize" onMouseEnter={() => resizeOn()} onMouseLeave={() => resizeOff()}></div>
+            <section className="player">
                 <img ref={songCover} className="player-img" src={state.songCover}/>
                 <div className="player-container">
                     <div className="player-row">
@@ -1733,15 +1724,15 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             <h2 ref={songTitle} className="player-text">{state.songName}</h2>
                         </div>
                         <div className="play-button-container">
-                            <PrevIcon className="player-button" ref={previousButton} onClick={() => previous()}/>
+                            <PrevIcon className="player-button skip-button" ref={previousButton} onClick={() => previous()}/>
                             <PlayIcon className="player-button play-button" ref={playButton} onClick={() => play()}/>
-                            <NextIcon className="player-button" ref={nextButton} onClick={() => next()}/>
+                            <NextIcon className="player-button skip-button" ref={nextButton} onClick={() => next()}/>
                         </div>
                         <div className="progress-text-container">
                             <p className="player-text"><span ref={secondsProgress}>0:00</span> <span>/</span> <span ref={secondsTotal}>0:00</span></p>
                         </div>
                         <div className="volume-container">
-                            <VolumeIcon className="player-button" ref={volumeRef} onClick={() => mute()}/>
+                            <VolumeIcon className="player-button volume-button" ref={volumeRef} onClick={() => mute()}/>
                             <Slider className="volume-slider" trackClassName="volume-slider-track" thumbClassName="volume-slider-handle" ref={volumeBar} onChange={(value) => {updateVolumePos(value); volume(value)}} min={0} max={1} step={0.05} defaultValue={1}/>
                         </div>
                     </div>

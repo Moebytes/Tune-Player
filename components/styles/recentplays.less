@@ -5,7 +5,8 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    margin-top: calc(@title-bar-height + 20px);
+    padding-top: @title-bar-height;
+    margin-top: 20px;
     gap: 15px;
 }
 
@@ -20,7 +21,6 @@
 
 .recent-title {
     margin-left: 25px;
-    user-select: text;
     font-size: 30px;
     font-family: "GenEi M Gothic v2", sans-serif;
     color: var(--textColor);
@@ -41,13 +41,9 @@
 }
 
 .recent-img {
-    cursor: pointer;
     max-width: 16vw;
     height: auto;
     margin: 10px;
-    &:active {
-        filter: brightness(110%);
-    }
 }
 
 .recent-square {
@@ -58,13 +54,9 @@
 }
 
 .recent-img-yt {
-    cursor: pointer;
     width: auto;
     max-height: 12vw;
     margin: 10px;
-    &:active {
-        filter: brightness(110%);
-    }
 }
 
 .recent-page-buttons {

@@ -15,7 +15,7 @@ import "./index.less"
 
 const App: React.FunctionComponent = () => {
   const onDrop = (event: React.DragEvent) => {
-      const file = event.dataTransfer?.files[0]
+      const file = event.dataTransfer?.files[0] as File & {path: string}
       if (file) window.ipcRenderer.invoke("upload-file", file.path)
   }
 
