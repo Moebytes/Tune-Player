@@ -1,4 +1,4 @@
-import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, globalShortcut, ipcMain, shell} from "electron"
+import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell} from "electron"
 import dragAddon from "electron-click-drag-plugin"
 import Store from "electron-store"
 import path from "path"
@@ -376,6 +376,13 @@ const applicationMenu = () =>  {
         }
       ]
     },
+    {
+      label: "Edit",
+      submenu: [
+        {role: "copy"},
+        {role: "paste"}
+      ]
+    },
     {role: "windowMenu"},
     {
       role: "help",
@@ -388,7 +395,8 @@ const applicationMenu = () =>  {
       ]
     }
   ]
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
 }
 
 const singleLock = app.requestSingleInstanceLock()
@@ -420,5 +428,3 @@ if (!singleLock) {
     })
   })
 }
-
-app.allowRendererProcessReuse = false

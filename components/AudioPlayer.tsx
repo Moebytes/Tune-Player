@@ -131,10 +131,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const changePlayState = () => {
             play()
         }
-        const triggerPaste = () => {
-            const text = window.clipboard.readText()
-            if (text) searchBox.current!.value += text
-        }
         const copyLoop = () => {
             if (state.abloop && state.loopEnd) {
                 state.savedLoop[0] = state.loopStart
@@ -165,7 +161,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.ipcRenderer.on("highpass", highpass)
         window.ipcRenderer.on("highshelf", highshelf)
         window.ipcRenderer.on("lowshelf", lowshelf)
-        window.ipcRenderer.on("trigger-paste", triggerPaste)
         window.ipcRenderer.on("copy-loop", copyLoop)
         window.ipcRenderer.on("paste-loop", pasteLoop)
         window.ipcRenderer.on("synth", updateSynth)
@@ -183,7 +178,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.ipcRenderer.removeListener("highpass", highpass)
             window.ipcRenderer.removeListener("highshelf", highshelf)
             window.ipcRenderer.removeListener("lowshelf", lowshelf)
-            window.ipcRenderer.removeListener("trigger-paste", triggerPaste)
             window.ipcRenderer.removeListener("copy-loop", copyLoop)
             window.ipcRenderer.removeListener("paste-loop", pasteLoop)
             window.ipcRenderer.removeListener("synth", updateSynth)
