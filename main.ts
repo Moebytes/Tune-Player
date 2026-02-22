@@ -1,5 +1,4 @@
-import {app, BrowserWindow, dialog, globalShortcut, ipcMain, shell} from "electron"
-import * as localShortcut from "electron-shortcuts"
+import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, globalShortcut, ipcMain, shell} from "electron"
 import dragAddon from "electron-click-drag-plugin"
 import Store from "electron-store"
 import path from "path"
@@ -8,6 +7,7 @@ import Youtube from "youtube.ts"
 import Soundcloud from "soundcloud.ts"
 import functions from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
+import pack from "./package.json"
 import fs from "fs"
 
 process.setMaxListeners(0)
@@ -268,22 +268,6 @@ ipcMain.handle("get-art", async (event, url: string) => {
   return picture
 })
 
-ipcMain.handle("paste-loop", async (event) => {
-  window?.webContents.send("paste-loop")
-})
-
-ipcMain.handle("copy-loop", async (event) => {
-  window?.webContents.send("copy-loop")
-})
-
-ipcMain.handle("trigger-paste", async (event) => {
-  window?.webContents.send("trigger-paste")
-})
-
-ipcMain.handle("trigger-remove", async (event) => {
-  window?.webContents.send("trigger-remove")
-})
-
 ipcMain.handle("change-play-state", () => {
   window?.webContents.send("change-play-state")
 })
@@ -352,6 +336,61 @@ app.on("open-file", (event, file) => {
   window?.webContents.send("open-file", file)
 })
 
+ipcMain.handle("context-menu", (event, {hasSelection}) => {
+  const template: MenuItemConstructorOptions[] = [
+    {label: "Copy", enabled: hasSelection, role: "copy"},
+    {label: "Paste", role: "paste"},
+    {type: "separator"},
+    {label: "Remove Track", click: () => event.sender.send("trigger-remove")},
+    {type: "separator"},
+    {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
+    {label: "Paste Loop", click: () => event.sender.send("paste-loop")}
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  const window = BrowserWindow.fromWebContents(event.sender)
+  if (window) menu.popup({window})
+})
+
+const applicationMenu = () =>  {
+  const template: MenuItemConstructorOptions[] = [
+    {role: "appMenu"},
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "Open", 
+          accelerator: "CmdOrCtrl+O",
+          click: (item, window) => {
+            const win = window as BrowserWindow
+            win.webContents.send("trigger-open")
+          }
+        },
+        {
+          label: "Save",
+          accelerator: "CmdOrCtrl+S",
+          click: (item, window) => {
+            const win = window as BrowserWindow
+            win?.webContents.send("trigger-save")
+          }
+        }
+      ]
+    },
+    {role: "windowMenu"},
+    {
+      role: "help",
+      submenu: [
+        {role: "reload"},
+        {role: "forceReload"},
+        {role: "toggleDevTools"},
+        {type: "separator"},
+        {label: "Online Support", click: () => shell.openExternal(pack.repository.url)}
+      ]
+    }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 const singleLock = app.requestSingleInstanceLock()
 
 if (!singleLock) {
@@ -371,21 +410,13 @@ if (!singleLock) {
       preload: path.join(__dirname, "../preload/index.js")}})
     window.loadFile(path.join(__dirname, "../renderer/index.html"))
     window.removeMenu()
+    applicationMenu()
     openFile()
     window.webContents.on("did-finish-load", () => {
       window?.show()
     })
     window.on("closed", () => {
       window = null
-    })
-    localShortcut.register("Ctrl+S", () => {
-      window?.webContents.send("trigger-save")
-    }, window, {strict: true})
-    localShortcut.register("Ctrl+O", () => {
-      window?.webContents.send("trigger-open")
-    }, window, {strict: true})
-    globalShortcut.register("Control+Shift+I", () => {
-      window?.webContents.toggleDevTools()
     })
   })
 }
