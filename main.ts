@@ -268,14 +268,6 @@ ipcMain.handle("get-art", async (event, url: string) => {
   return picture
 })
 
-ipcMain.handle("change-play-state", () => {
-  window?.webContents.send("change-play-state")
-})
-
-ipcMain.handle("play-state-changed", () => {
-  window?.webContents.send("play-state-changed")
-})
-
 ipcMain.handle("save-dialog", async (event, defaultPath: string) => {
   if (!window) return
   const save = await dialog.showSaveDialog(window, {

@@ -2,7 +2,7 @@ import React, {useEffect, useRef} from "react"
 import path from "path"
 import Slider from "react-slider"
 import * as Tone from "tone"
-import {Midi} from '@tonejs/midi'
+import {Midi} from "@tonejs/midi"
 import {ID3Writer} from "browser-id3-writer"
 import jsmediatags from "jsmediatags"
 import functions from "../structures/functions"
@@ -128,9 +128,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 upload(info.song)
             }
         }
-        const changePlayState = () => {
-            play()
-        }
         const copyLoop = () => {
             if (state.abloop && state.loopEnd) {
                 state.savedLoop[0] = state.loopStart
@@ -152,7 +149,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         abSlider.current.slider.style.display = "none"
         window.ipcRenderer.on("open-file", openFile)
         window.ipcRenderer.on("invoke-play", invokePlay)
-        window.ipcRenderer.on("change-play-state", changePlayState)
         window.ipcRenderer.on("bitcrush", bitcrush)
         window.ipcRenderer.on("reverb", reverb)
         window.ipcRenderer.on("phaser", phaser)
@@ -169,7 +165,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         return () => {
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
-            window.ipcRenderer.removeListener("change-play-state", changePlayState)
             window.ipcRenderer.removeListener("bitcrush", bitcrush)
             window.ipcRenderer.removeListener("reverb", reverb)
             window.ipcRenderer.removeListener("phaser", phaser)
@@ -614,13 +609,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (state.midi) await playMIDI()
             Tone.Transport.start()
         }
-        window.ipcRenderer.invoke("play-state-changed")
     }
 
     const stop = () => {
         if (!checkBuffer()) return
         Tone.Transport.stop()
-        window.ipcRenderer.invoke("play-state-changed")
     }
 
     const mute = () => {

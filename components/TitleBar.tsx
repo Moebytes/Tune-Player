@@ -54,10 +54,6 @@ const TitleBar: React.FunctionComponent = (props) => {
 
     }
 
-    const play = () => {
-        window.ipcRenderer.invoke("change-play-state")
-    }
-
     const fx = () => {
         window.ipcRenderer.invoke("audio-effects")
     }

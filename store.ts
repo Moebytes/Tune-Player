@@ -1,9 +1,11 @@
 import {configureStore} from "@reduxjs/toolkit"
 import themeReducer, {useThemeSelector, useThemeActions} from "./reducers/themeReducer"
+import playbackReducer, {usePlaybackSelector, usePlaybackActions} from "./reducers/playbackReducer"
 
 const store = configureStore({
     reducer: {
-        theme: themeReducer
+        theme: themeReducer,
+        playback: playbackReducer
     },
 })
 
