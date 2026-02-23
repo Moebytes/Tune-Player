@@ -33,23 +33,7 @@ const MIDISynth: React.FunctionComponent = () => {
 
     useEffect(() => {
         const showsynthDialog = (event: any, update: any) => {
-            setVisible((prev) => {
-                if (prev === true) return false
-                if (prev === false) {
-                    window.ipcRenderer.invoke("get-synth-state").then((state) => {
-                        setWave(state.wave)
-                        setBasicWave(state.basicWave)
-                        setWaveType(state.waveType)
-                        setAttack(state.attack)
-                        setDecay(state.decay)
-                        setSustain(state.sustain)
-                        setRelease(state.relase)
-                        setPoly(state.poly)
-                        setPortamento(state.portamento)
-                    })
-                }
-                return true
-            })
+            setVisible((prev) => !prev)
         }
         const closeAllDialogs = (event: any, ignore: any) => {
             if (ignore !== "synth") setVisible(false)
@@ -118,21 +102,21 @@ const MIDISynth: React.FunctionComponent = () => {
                         </div>
                         <div className="synth-row-container">
                             <div className="synth-row">
-                                <SawtoothIcon className="synth-wave" onClick={() => changeWave("sawtooth")}/>
-                                <SquareIcon className="synth-wave" onClick={() => changeWave("square")}/>
-                                <TriangleIcon className="synth-wave" onClick={() => changeWave("triangle")}/>
-                                <SineIcon className="synth-wave" onClick={() => changeWave("sine")}/>
+                                <SawtoothIcon className={`synth-wave ${basicWave === "sawtooth" && "synth-wave-selected"}`} onClick={() => changeWave("sawtooth")}/>
+                                <SquareIcon className={`synth-wave ${basicWave === "square" && "synth-wave-selected"}`} onClick={() => changeWave("square")}/>
+                                <TriangleIcon className={`synth-wave ${basicWave === "triangle" && "synth-wave-selected"}`} onClick={() => changeWave("triangle")}/>
+                                <SineIcon className={`synth-wave ${basicWave === "sine" && "synth-wave-selected"}`} onClick={() => changeWave("sine")}/>
                             </div>
                             <div className="synth-row">
-                                <button className="synth-wave-type" onClick={() => changeWaveType("basic")}>Basic</button>
-                                <button className="synth-wave-type" onClick={() => changeWaveType("am")}>AM</button>
-                                <button className="synth-wave-type" onClick={() => changeWaveType("fm")}>FM</button>
-                                <button className="synth-wave-type" onClick={() => changeWaveType("fat")}>Fat</button>
-                                <button className="synth-wave-type" onClick={() => changeWaveType("pulse")}>Pulse</button>
-                                <button className="synth-wave-type" onClick={() => changeWaveType("pwm")}>PWM</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#ff5e97"}} onClick={() => changeWaveType("basic")}>Basic</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#ff5ecc"}} onClick={() => changeWaveType("am")}>AM</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#fa75ff"}} onClick={() => changeWaveType("fm")}>FM</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#75b1ff"}} onClick={() => changeWaveType("fat")}>Fat</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#6b81ff"}} onClick={() => changeWaveType("pulse")}>Pulse</button>
+                                <button className="synth-wave-type" style={{backgroundColor: "#b35cff"}} onClick={() => changeWaveType("pwm")}>PWM</button>
                             </div>
                             <div className="synth-row">
-                                <button className="synth-poly-button" onClick={() => setPoly(!poly)}>{poly ? "Poly" : "Mono"}</button>
+                                <button className="synth-poly-button" style={{backgroundColor: poly ? "#ff5cab" : "#ff78f8"}} onClick={() => setPoly(!poly)}>{poly ? "Poly" : "Mono"}</button>
                                 <div className="synth-porta-container">
                                     <p className="synth-text">Portamento: </p>
                                     <Slider className="synth-slider porta-slider" trackClassName="synth-slider-track" thumbClassName="synth-slider-thumb" 

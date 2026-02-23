@@ -114,7 +114,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const pitchBandBar = useRef(null) as any
     const abSlider = useRef(null) as React.RefObject<any>
     const speedPopup = useRef<HTMLDivElement>(null)
+    const speedIcon = useRef<HTMLDivElement>(null)
     const pitchPopup = useRef<HTMLDivElement>(null)
+    const pitchIcon = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         progressBar.current?.resize()
@@ -148,20 +150,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const triggerSave = () => {
             downloadSong()
         }
-        
-        /* Close speed and pitch boxes */
-        const onWindowClick = (event: any) => {
-            if (speedPopup.current?.style.display === "flex") {
-                if (!(speedPopup.current?.contains(event.target))) {
-                    if (event.target !== speedPopup.current) setShowSpeedPopup(false)
-                }
-            }
-            if (pitchPopup.current?.style.display === "flex") {
-                if (!(pitchPopup.current?.contains(event.target))) {
-                    if (event.target !== pitchPopup.current) setShowPitchPopup(false)
-                }
-            }
-        }
 
         const onWindowMouseUp = (event: any) => {
             setDragging(false)
@@ -173,17 +161,35 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.ipcRenderer.on("invoke-play", invokePlay)
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
-        window.addEventListener("click", onWindowClick)
         window.addEventListener("mouseup", onWindowMouseUp)
         return () => {
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
-            window.removeEventListener("click", onWindowClick)
             window.removeEventListener("mouseup", onWindowMouseUp)
         }
     }, [])
+
+    useEffect(() => {
+        const onWindowClick = (event: MouseEvent) => {
+            const target = event.target as Node
+            if (showSpeedPopup && !speedIcon.current?.contains(target)
+                && !speedPopup.current?.contains(target)) {
+                setShowSpeedPopup(false)
+            }
+
+            if (showPitchPopup && !pitchIcon.current?.contains(target)
+                && !pitchPopup.current?.contains(target)) {
+                setShowPitchPopup(false)
+            }
+        }
+
+        window.addEventListener("mousedown", onWindowClick)
+        return () => {
+            window.removeEventListener("mousedown", onWindowClick)
+        }
+    }, [showPitchPopup, showSpeedPopup])
 
     useEffect(() => {
         const copyLoop = () => {
@@ -357,7 +363,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         updatePitchLFO(pitchLFO)
         pitchBands(splitBands)
         updateReverse(reverse, apply)
-        updateLoop(loop)
         if (abloop) updateABLoop([loopStart, loopEnd])
     }
 
@@ -419,8 +424,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     let currentNode = lfoNode
                     for (let i = 0; i < nodes.length; i++) {
                         let node = nodes[i] instanceof Tone.ToneAudioNode ? nodes[i].input : nodes[i]
-                        currentNode.connect(node)
-                        currentNode = nodes[i]
+                        try {
+                            currentNode.connect(node)
+                            currentNode = nodes[i]
+                        } catch {}
                     }
                     currentNode.connect(audioNode.output)
                 } else {
@@ -433,8 +440,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     let currentNode = lfoNode
                     for (let i = 0; i < nodes.length; i++) {
                         let node = nodes[i] instanceof Tone.ToneAudioNode ? nodes[i].input : nodes[i]
-                        currentNode.connect(node)
-                        currentNode = nodes[i]
+                        try {
+                            currentNode.connect(node)
+                            currentNode = nodes[i]
+                        } catch {}
                     }
                     currentNode.connect(audioNode.output)
                 }
@@ -660,7 +669,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSpeed(1)
         setVolume(1)
         setMuted(false)
-        setLoop(false)
         setABLoop(false)
         setLoopStart(0)
         setLoopEnd(100)
@@ -1352,7 +1360,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 await context.addAudioWorkletModule(bitcrusherURL, "bitcrush")
                 bitcrusherNode = context.createAudioWorkletNode("bitcrush-processor")
             }
-            bitcrusherNode.parameters.get("sampleRate").value = functions.logSlider2(sampleRate, 100, 44100)
+            bitcrusherNode.parameters.get("sampleRate").value = functions.logSlider2(sampleRate, 100, 44100, 1)
             if (noApply) return bitcrusherNode
             pushEffect("bitcrush", bitcrusherNode)
             applyEffects()
@@ -1420,7 +1428,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowpassCutoff === 100) {
             removeEffect("lowpass")
         } else {
-            const low = new Tone.Filter({type: "lowpass", frequency: functions.logSlider2(lowpassCutoff, 1, 20000), Q: filterResonance, rolloff: getFilterSlope()})
+            const low = new Tone.Filter({type: "lowpass", frequency: functions.logSlider2(lowpassCutoff, 20, 20000), Q: filterResonance, rolloff: getFilterSlope()})
             if (noApply) return low
             pushEffect("lowpass", low)
             applyEffects()
@@ -1435,7 +1443,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highpassCutoff === 0) {
             removeEffect("highpass")
         } else {
-            const high = new Tone.Filter({type: "highpass", frequency: functions.logSlider2(highpassCutoff, 1, 20000), Q: filterResonance, rolloff: getFilterSlope()})
+            const high = new Tone.Filter({type: "highpass", frequency: functions.logSlider2(highpassCutoff, 20, 20000), Q: filterResonance, rolloff: getFilterSlope()})
             if (noApply) return high
             pushEffect("highpass", high)
             applyEffects()
@@ -1450,7 +1458,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highshelfGain === 0) {
             removeEffect("highshelf")
         } else {
-            const high = new Tone.Filter({type: "highshelf", frequency: functions.logSlider2(highshelfCutoff, 1, 20000), gain: highshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
+            const high = new Tone.Filter({type: "highshelf", frequency: functions.logSlider2(highshelfCutoff, 20, 20000), gain: highshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
             if (noApply) return high
             pushEffect("highshelf", high)
             applyEffects()
@@ -1465,7 +1473,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowshelfGain === 0) {
             removeEffect("lowshelf")
         } else {
-            const low = new Tone.Filter({type: "lowshelf", frequency: functions.logSlider2(lowshelfCutoff, 1, 20000), gain: lowshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
+            const low = new Tone.Filter({type: "lowshelf", frequency: functions.logSlider2(lowshelfCutoff, 20, 20000), gain: lowshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
             if (noApply) return low
             pushEffect("lowshelf", low)
             applyEffects()
@@ -1545,7 +1553,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                                 </div>
                             </div>
                         </div> : null}
-                        <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} onClick={() => togglePopup("speed")}/>
+                        <div ref={speedIcon}>
+                            <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} onClick={() => togglePopup("speed")}/>
+                        </div>
                         {showPitchPopup ? <div className="pitch-popup-container" ref={pitchPopup}>
                             <div className="pitch-popup">
                                 <div className="pitch-popup-inner-container">
@@ -1577,7 +1587,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                                 </div>
                             </div>
                         </div> : null}
-                        <PitchIcon className={`player-button ${pitch !== 0 && "active-button"}`} onClick={() => togglePopup("pitch")}/>
+                        <div ref={pitchIcon}>
+                            <PitchIcon ref={pitchIcon} className={`player-button ${pitch !== 0 && "active-button"}`} onClick={() => togglePopup("pitch")}/>
+                        </div>
                         <div className="progress-container">
                             <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle"
                             ref={progressBar} min={0} max={100} onBeforeChange={() => setDragging(true)} onChange={(value: number) => updateProgressText(value)} 

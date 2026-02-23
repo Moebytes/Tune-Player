@@ -17,7 +17,7 @@
 .synth-dialog-box {
     margin-top: -120px;
     width: 60%;
-    height: 57%;
+    height: 62%;
     border-radius: 10px;
     background-color: var(--navColor);
     padding: 10px;
@@ -58,6 +58,7 @@
     margin-top: 10px;
     align-items: flex-start;
     justify-content: flex-start;
+    gap: 2px;
     width: 100%;
 }
 
@@ -115,21 +116,43 @@
     align-items: center;
 }
 
-.synth-poly-button {
-    width: 60px;
-}
-
 .porta-slider {
     margin-left: 20px;
 }
 
 .synth-wave {
-    width: 50px;
+    width: auto;
+    height: 65px;
+    padding: 3px;
     color: var(--iconColor);
+    border: 2px solid transparent;
+}
+
+.synth-wave-selected {
+    border: 2px solid var(--iconColor);
 }
 
 .synth-wave-type {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     height: 22px;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    padding: 5px;
+    background-color: var(--iconColor);
+    border-radius: 5px;
+    color: var(--textColor2);
+    font-family: "GenEi M Gothic v2", sans-serif;
+    font-size: 15px;
+}
+
+.synth-poly-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    background-color: var(--iconColor);
+    border-radius: 7px;
+    color: var(--textColor2);
+    font-family: "GenEi M Gothic v2", sans-serif;
+    font-size: 15px;
 }

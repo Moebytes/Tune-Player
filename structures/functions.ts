@@ -44,14 +44,14 @@ export default class Functions {
         return adjusted
     }
 
-    public static logSlider2 = (position: number, min: number, max: number) => {
+    public static logSlider2 = (position: number, min: number, max: number, intensity = 0.9) => {
         const minPos = 0
         const maxPos = 100
         const minValue = Math.log(min)
         const maxValue = Math.log(max)
         const scale = (maxValue - minValue) / (maxPos - minPos)
-        const value = Math.exp(minValue + scale * (position - minPos))
-        return value
+        const adjustedScale = Math.pow(scale, intensity)
+        return Math.exp(minValue + adjustedScale * (position - minPos))
     }
 
     public static formatSeconds = (duration: number) => {
