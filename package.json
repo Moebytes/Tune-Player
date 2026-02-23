@@ -140,7 +140,6 @@
   },
   "dependencies": {
     "@electron/osx-sign": "^2.3.0",
-    "@rc-component/slider": "github:Moestash/rc-slider",
     "@reduxjs/toolkit": "^2.11.2",
     "@tonejs/midi": "^2.0.28",
     "audio-encoder": "^1.0.2",
@@ -153,7 +152,7 @@
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.4",
     "react-redux": "^9.2.0",
-    "react-slider": "^2.0.6",
+    "react-slider": "github:Moestash/react-slider",
     "soundcloud.ts": "^0.7.2",
     "tone": "^14.7.39",
     "web-audio-beat-detector": "^8.2.35",
