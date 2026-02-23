@@ -1,5 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css"
-import React from "react"
+import React, { useEffect } from "react"
 import {createRoot} from "react-dom/client"
 import {Provider} from "react-redux"
 import TitleBar from "./components/TitleBar"
@@ -8,6 +8,7 @@ import AudioPlayer from "./components/AudioPlayer"
 import AudioEffects from "./components/AudioEffects"
 import AudioFilters from "./components/AudioFilters"
 import MIDISynth from "./components/MIDISynth"
+import SearchDialog from "./components/SearchDialog"
 import ContextMenu from "./components/ContextMenu"
 import LocalStorage from "./LocalStorage"
 import store from "./store"
@@ -24,11 +25,27 @@ const App: React.FunctionComponent = () => {
     event.preventDefault()
   }
 
+  useEffect(() => {
+    const keyDown = async (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Enter") {
+          window.ipcRenderer.invoke("enter-pressed")
+      }
+      if (event.key === "Escape") {
+          window.ipcRenderer.invoke("escape-pressed")
+      }
+    }
+    document.addEventListener("keydown", keyDown)
+    return () => {
+      document.removeEventListener("keydown", keyDown)
+    }
+  }, [])
+
   return (
     <main className="app" onDrop={onDrop} onDragOver={onDragOver}>
       <TitleBar/>
       <ContextMenu/>
       <LocalStorage/>
+      <SearchDialog/>
       <AudioEffects/>
       <AudioFilters/>
       <MIDISynth/>

@@ -51,7 +51,7 @@ const TitleBar: React.FunctionComponent = (props) => {
     }
 
     const search = () => {
-
+        window.ipcRenderer.invoke("show-search-dialog")
     }
 
     const fx = () => {

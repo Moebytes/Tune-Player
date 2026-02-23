@@ -1,0 +1,71 @@
+@import "../../index.less";
+@import "./titlebar.less";
+
+.search-dialog {
+    position: fixed;
+    z-index: 700;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding-top: @title-bar-height;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.search-dialog-box {
+    pointer-events: all;
+    margin-top: -75vh;
+    width: 55%;
+    height: 10%;
+    border-radius: 10px;
+    background-color: var(--navColor);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.search-dialog-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-dialog-bar {
+    display: flex;
+    height: 2rem;
+    border: 0.1rem solid var(--textColor2);
+    width: 100%;
+}
+
+.search-dialog-input {
+    width: 100%;
+    font-size: 1.5rem;
+    font-family: "GenEi M Gothic v2", sans-serif;
+    color: var(--textColor);
+    background-color: transparent;
+    border: none;
+    &::placeholder {
+        color: var(--textColor);
+    }
+}
+
+.search-dialog-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    background-color: var(--iconColor);
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.search-dialog-icon:hover {
+    cursor: pointer;
+    filter: invert(1);
+}

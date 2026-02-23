@@ -58,6 +58,7 @@ ipcMain.handle("show-in-folder", async (event, savePath: string) => {
 
 ipcMain.handle("save-file", async (event, filePath: string, buffer: Buffer) => {
   fs.writeFileSync(filePath, buffer)
+  shell.showItemInFolder(path.normalize(filePath))
 })
 
 ipcMain.handle("get-bitcrusher-source", () => {
@@ -86,6 +87,19 @@ ipcMain.handle("synth", (event, state: any) => {
 ipcMain.handle("midi-synth", () => {
   window?.webContents.send("close-all-dialogs", "synth")
   window?.webContents.send("show-synth-dialog")
+})
+
+ipcMain.handle("show-search-dialog", async (event) => {
+  window?.webContents.send("close-all-dialogs", "search")
+  window?.webContents.send("show-search-dialog")
+})
+
+ipcMain.handle("escape-pressed", () => {
+  window?.webContents.send("escape-pressed")
+})
+
+ipcMain.handle("enter-pressed", () => {
+  window?.webContents.send("enter-pressed")
 })
 
 ipcMain.handle("get-theme", () => {
@@ -280,6 +294,10 @@ ipcMain.handle("trigger-open", (event) => {
 
 ipcMain.handle("trigger-save", (event) => {
   window?.webContents.send("trigger-save")
+})
+
+ipcMain.handle("trigger-search", (event, query: string) => {
+  window?.webContents.send("trigger-search", query)
 })
 
 const openFile = (argv?: any) => {

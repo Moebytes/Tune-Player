@@ -26,12 +26,10 @@ export default class Functions {
     public static findDupe = (recent: SongItem[], info: SongItem) => {
         for (let i = recent.length - 1; i >= 0; i--) {
             if (recent[i].midi) {
-                if (recent[i].bpm === info.bpm
-                    && recent[i].songName === info.songName
+                if (recent[i].songName === info.songName
                     && recent[i].duration === info.duration) return i
             } else {
-                if (recent[i].songUrl === info.songUrl
-                    && recent[i].songName === info.songName
+                if (recent[i].songName === info.songName
                     && recent[i].duration === info.duration) return i
             }
         }

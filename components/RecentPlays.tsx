@@ -18,7 +18,6 @@ const RecentPlays: React.FunctionComponent = (props) => {
     useEffect(() => {
         const updateRecentGUI = async () => {
             recent = await window.ipcRenderer.invoke("get-recent")
-            console.log(recent)
             let newPages = [] as any
             let counter = 0;
             while (counter < recent.length - 1) {

@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from "react"
+import React, {useEffect, useEffectEvent, useState, useRef} from "react"
 import {usePlaybackSelector, usePlaybackActions} from "../store"
 import path from "path"
 import Slider from "react-slider"
@@ -27,6 +27,7 @@ import midiPlaceholder from "../assets/images/midi-placeholder.png"
 import silence from "../assets/silence.mp3"
 import audioEncoder from "audio-encoder"
 import "./styles/audioplayer.less"
+import { buffer } from "stream/consumers"
 
 let timer = null as any
 let player: Tone.Player
@@ -150,26 +151,66 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const triggerSave = () => {
             downloadSong()
         }
-
+        const triggerSearch = (event: any, query: string) => {
+            submit(query)
+        }
         const onWindowMouseUp = (event: any) => {
             setDragging(false)
             setABDragging(false)
         }
         initState()
         abSlider.current.slider.style.display = "none"
+        window.addEventListener("mouseup", onWindowMouseUp)
         window.ipcRenderer.on("open-file", openFile)
         window.ipcRenderer.on("invoke-play", invokePlay)
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
-        window.addEventListener("mouseup", onWindowMouseUp)
+        window.ipcRenderer.on("trigger-search", triggerSearch)
         return () => {
+            window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
-            window.removeEventListener("mouseup", onWindowMouseUp)
+            window.ipcRenderer.removeListener("trigger-search", triggerSearch)
         }
     }, [])
+
+    useEffect(() => {
+        /*Update Progress*/
+        const updateProgress = () => {
+            let percent = (Tone.getTransport().seconds / duration)
+            if (!Number.isFinite(percent)) return
+            if (!dragging) {
+                if (reverse) {
+                    setProgress((1-percent) * 100)
+                    setSecondsProgress(duration - Tone.getTransport().seconds)
+                } else {
+                    setProgress(percent * 100)
+                    setSecondsProgress(Tone.getTransport().seconds)
+                }
+            }
+            if (!loop) {
+                if (Tone.getTransport().seconds > duration - 1) {
+                    disposeSynths()
+                    Tone.getTransport().pause()
+                    Tone.getTransport().seconds = Math.round(duration) - 1
+                    setPaused(true)
+                }
+                if (Tone.getTransport().seconds === Math.round(duration) - 1) Tone.getTransport().seconds = Math.round(duration)
+            } else {
+                if (midi && Math.floor(Tone.getTransport().seconds) === 0) playMIDI()
+                if (Tone.getTransport().seconds > duration) {
+                    Tone.getTransport().seconds = 0
+                    if (midi) playMIDI()
+                }
+            }
+        }
+        const interval = window.setInterval(updateProgress, 1000)
+        return () => {
+            window.clearInterval(interval)
+        }
+    }, [duration, dragging, reverse, loop, midi])
 
     useEffect(() => {
         const onWindowClick = (event: MouseEvent) => {
@@ -210,45 +251,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
     }, [abloop, loopStart, loopEnd])
 
-    
-    useEffect(() => {
-        /*Update Progress*/
-        const updateProgress = () => {
-            let percent = (Tone.getTransport().seconds / duration)
-            if (!Number.isFinite(percent)) return
-            if (!dragging) {
-                if (reverse) {
-                    setProgress((1-percent) * 100)
-                    setSecondsProgress(duration - Tone.getTransport().seconds)
-                } else {
-                    setProgress(percent * 100)
-                    setSecondsProgress(Tone.getTransport().seconds)
-                }
-            }
-            if (!loop) {
-                if (Tone.getTransport().seconds > duration - 1) {
-                    disposeSynths()
-                    Tone.getTransport().pause()
-                    Tone.getTransport().seconds = Math.round(duration) - 1
-                    setPaused(true)
-                }
-                if (Tone.getTransport().seconds === Math.round(duration) - 1) Tone.getTransport().seconds = Math.round(duration)
-            } else {
-                if (midi && Math.floor(Tone.getTransport().seconds) === 0) playMIDI()
-                if (Tone.getTransport().seconds > duration) {
-                    Tone.getTransport().seconds = 0
-                    if (midi) playMIDI()
-                }
-            }
-        }
-        const interval = window.setInterval(updateProgress, 1000)
-        return () => {
-            window.clearInterval(interval)
-        }
-    }, [reverse, dragging, loop, duration, midi, synths, midiFile, midiDuration, speed, pitch, preservesPitch,
-        poly, attack, decay, sustain, release, portamento, wave
-    ])
-
     useEffect(() => {
         /* Precision on shift click */
         const keyDown = (event: KeyboardEvent) => {
@@ -260,11 +262,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (event.code === "Space") {
                 event.preventDefault()
                 play()
-            }
-            /* Search on Enter */
-            if (event.key === "Enter") {
-                event.preventDefault()
-                submit()
             }
             /* Arrow Key Shortcuts */
             if (event.key === "ArrowLeft") {
@@ -355,7 +352,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (synthSaved.portamento !== undefined) setPortamento(Number(synthSaved.portamento))
     }
 
-    const refreshState = () => {
+    const refreshState = useEffectEvent(() => {
         const apply = {player}
         updatePreservesPitch(preservesPitch)
         updateSpeed(speed)
@@ -364,7 +361,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         pitchBands(splitBands)
         updateReverse(reverse, apply)
         if (abloop) updateABLoop([loopStart, loopEnd])
-    }
+    })
 
     const saveState = () => {
         window.ipcRenderer.invoke("save-state", {reverse, pitch, speed, preservesPitch, 
@@ -464,43 +461,42 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
     }
 
-    const disposeSynths = (synthArray?: any[]) => {
+    const disposeSynths = useEffectEvent((synthArray?: any[]) => {
         let array = synthArray ? synthArray : synths
         while (array.length) {
             const synth = array.shift()
             synth?.dispose()
         }
-    }
+    })
 
-    const switchState = () => {
+    const switchState = useEffectEvent(() => {
         if (midi) {
             player.disconnect()
         } else {
             if (synths.length) disposeSynths()
         }
-    }
+    })
 
-    const updateDuration = (value?: number) => {
+    const updateDuration = useEffectEvent(async (value?: number) => {
         if (!lfoNode) return
         if (value) {
             setDuration(value)
         } else {
             if (!midi) {
                 setDuration(player.buffer.duration / player.playbackRate)
-                functions.getBPM(player.buffer.get()!).then(({bpm}) => {
-                    setBpm(bpm)
-                    lfoNode.parameters.get("bpm").value = bpm
-                })
+                const {bpm} = await functions.getBPM(player.buffer.get()!)
+                setBpm(bpm)
+                lfoNode.parameters.get("bpm").value = bpm
             }
         }
-    }
+    })
 
-    const checkBuffer = () => {
+    const checkBuffer = useEffectEvent(() => {
         if (midi) return true
         return player.buffer.loaded
-    }
+    })
 
-    const play = async (alwaysPlay?: boolean) => {
+    const play = useEffectEvent(async (alwaysPlay?: boolean) => {
         if (!checkBuffer()) return
         await Tone.start()
         updateDuration()
@@ -513,7 +509,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().start()
             setPaused(false)
         }
-    }
+    })
 
     const stop = () => {
         if (!checkBuffer()) return
@@ -822,7 +818,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }, [wave, basicWave, waveType, attack, decay, 
         sustain, release, poly, portamento])
 
-    const playMIDI = async (applyState?: any) => {
+    const playMIDI = useEffectEvent(async (applyState?: any) => {
         const localState = applyState ? applyState.state : {midiFile, midiDuration, speed, reverse, pitch, preservesPitch}
         const synthArray = applyState ? applyState.synths : synths
         if (!localState.midiFile) return
@@ -875,31 +871,33 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
         updateDuration(totalDuration)
         applyEffects()
-    }
+    })
 
     const uploadMIDI = async (file: string) => {
         setMidi(true)
-        const midi = await Midi.fromUrl(file)
+        const midiFile = await Midi.fromUrl(file)
         let totalDuration = 0
-        midi.tracks.forEach(track => {
+        midiFile.tracks.forEach(track => {
             track.notes.forEach(note => {
                 if (note.time + note.duration > totalDuration) totalDuration = note.time + note.duration
             })
         })
         setMidiDuration(totalDuration)
-        setBpm(midi.header.tempos[0].bpm)
+        let bpm = midiFile.header.tempos[0].bpm
+        setBpm(bpm)
         setSongCover(midiPlaceholder)
-        setSongName(path.basename(file).replace(".mid", ""))
+        let songName = path.basename(file).replace(".mid", "")
+        setSongName(songName)
         setSong(file)
         setSongUrl("")
-        setMidiFile(midi)
-        updateRecentFiles()
+        setMidiFile(midiFile)
+        updateRecentFiles(songName, file, midiPlaceholder, "", midi, totalDuration, bpm)
         switchState()
         stop()
         play(true)
     }
 
-    const upload = async (file?: string) => {
+    const upload = useEffectEvent(async (file?: string) => {
         if (!file) file = await window.ipcRenderer.invoke("select-file")
         if (!file) return
         if (path.extname(file) === ".mid") return uploadMIDI(file)
@@ -910,27 +908,31 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             new jsmediatags.Reader(fileObject).read({onSuccess: (tagInfo: any) => resolve(tagInfo), onError: (error: any) => reject(error)})   
         }).catch(() => null) as any
         const picture = tagInfo?.tags.picture
+        let songCover = placeholder
         if (picture) {
             let b64 = ""
             for (let i = 0; i < picture.data.length; i++) {
                 b64 += String.fromCharCode(picture.data[i])
             }
-            setSongCover(`data:${picture.format};base64,${btoa(b64)}`)
+            songCover = `data:${picture.format};base64,${btoa(b64)}`
+            setSongCover(songCover)
         } else {
-            setSongCover(placeholder)
+            setSongCover(songCover)
         }
-        setSongName(path.basename(file).replace(".mp3", "").replace(".wav", "").replace(".flac", "").replace(".ogg", ""))
+        let songName = path.basename(file).replace(".mp3", "").replace(".wav", "")
+            .replace(".flac", "").replace(".ogg", "")
+        setSongName(songName)
         setSong(file)
         setSongUrl("")
         player.load(file)
         await Tone.loaded()
         updateDuration()
-        updateRecentFiles()
+        updateRecentFiles(songName, file, songCover, "", midi, midiDuration, bpm)
         switchState()
         stop()
         play(true)
         refreshState()
-    }
+    })
 
     const applyAB = (duration: number, start?: number, end?: number) => {
         if (!abloop) return
@@ -989,7 +991,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         saveState()
     }
 
-    const applyState = async (localState: any, player: Tone.Player) => {
+    const applyState = useEffectEvent(async (localState: any, player: Tone.Player) => {
         const apply = {state: localState, player}
         player.load(localState.song)
         await Tone.loaded()
@@ -1053,7 +1055,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         editCode = editCode
         const current = player
         return {current, effectNodes}
-    }
+    })
 
     const applyMIDIState = async (localState: any, synths: Tone.PolySynth[]) => {
         const apply = {state: localState, synths}
@@ -1117,24 +1119,25 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
      /** Renders the same as online */
-     const render = async (start: number, duration: number) => {
+     const render = useEffectEvent(async (start: number, duration: number) => {
         if (!audioNode && !effectNode && !lfoNode) return
         return Tone.Offline(async (offlineContext) => {
-            let player = new Tone.Player().sync()
+            let player = new Tone.Player({context: offlineContext}).sync()
             let synths = [] as Tone.PolySynth[]
             let state = {
-                speed, reverse, pitch, abloop, sampleRate, reverbMix, 
-                delayMix, phaserMix, lowpassCutoff, highpassCutoff, highshelfGain, lowshelfGain
+                song, speed, reverse, pitch, abloop, sampleRate, reverbMix, 
+                delayMix, phaserMix, lowpassCutoff, highpassCutoff, highshelfGain, lowshelfGain,
+                midiFile, midiDuration, preservesPitch
             }
             if (midi) {
                 const {synthArray, effectNodes} = await applyMIDIState(state, synths)
                 synthArray.forEach((s) => s.chain(...[...effectNodes, offlineContext.destination]))
             } else {
                 let {current, effectNodes} = await applyState(state, player)
-                if (!effectNodes) effectNodes = []
+                effectNodes = (effectNodes ?? []).filter(Boolean)
                 // @ts-expect-error
-                const audioNode = new Tone.ToneAudioNode()
-                gainNode = new Tone.Gain(1)
+                const audioNode = new Tone.ToneAudioNode({context: offlineContext})
+                gainNode = new Tone.Gain({gain: 1, context: offlineContext})
                 audioNode.input = current
                 audioNode.output = gainNode.input
                 await offlineContext.addAudioWorkletModule(soundtouchURL, "soundtouch")
@@ -1146,7 +1149,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 
                 if (pitchLFO) {
                     // @ts-expect-error
-                    const effectNode = new Tone.ToneAudioNode()
+                    const effectNode = new Tone.ToneAudioNode({context: offlineContext})
                     effectNode.input = current
                     effectNode.output = gainNode.input
                     await offlineContext.addAudioWorkletModule(lfoURL, "lfo")
@@ -1156,9 +1159,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     lfoNode.port.postMessage({lfoShape: wave})
 
                     if (splitBands) {
-                        const lowband = new Tone.Filter({type: "lowpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope()})
-                        const highband = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope()})
-                        const highbandEffect = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope()})
+                        const lowband = new Tone.Filter({type: "lowpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope(), context: offlineContext})
+                        const highband = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope(), context: offlineContext})
+                        const highbandEffect = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope(), context: offlineContext})
                         audioNode.input = player
                         effectNode.input = player
                         audioNode.input.connect(lowband)
@@ -1174,8 +1177,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                         let currentNode = lfoNode
                         for (let i = 0; i < effectNodes.length; i++) {
                             const node = effectNodes[i] instanceof Tone.ToneAudioNode ? effectNodes[i].input : effectNodes[i]
-                            currentNode.connect(node)
-                            currentNode = effectNodes[i]
+                            try {
+                                currentNode.connect(node)
+                                currentNode = effectNodes[i]
+                            } catch {}
                         }
                         currentNode.connect(audioNode.output)
                         audioNode.connect(offlineContext.destination)
@@ -1188,8 +1193,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                         let currentNode = lfoNode
                         for (let i = 0; i < effectNodes.length; i++) {
                             const node = effectNodes[i] instanceof Tone.ToneAudioNode ? effectNodes[i].input : effectNodes[i]
-                            currentNode.connect(node)
-                            currentNode = effectNodes[i]
+                            try {
+                                currentNode.connect(node)
+                                currentNode = effectNodes[i]
+                            } catch {}
                         }
                         currentNode.connect(audioNode.output)
                         audioNode.connect(offlineContext.destination)
@@ -1197,8 +1204,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     }
                 } else {
                     if (splitBands) {
-                        const lowband = new Tone.Filter({type: "lowpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope()})
-                        const highband = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope()})
+                        const lowband = new Tone.Filter({type: "lowpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope(), context: offlineContext})
+                        const highband = new Tone.Filter({type: "highpass", frequency: splitBandFreq, Q: filterResonance, rolloff: getFilterSlope(), context: offlineContext})
                         audioNode.input = player
                         audioNode.input.connect(lowband)
                         audioNode.input.connect(highband)
@@ -1212,9 +1219,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             }
             offlineContext.transport.start(start)
         }, duration, 2, 44100)
-    }
+    })
 
-    const downloadSong = async () => {
+    const downloadSong = useEffectEvent(async () => {
         if (!checkBuffer()) return
         const defaultPath = `${functions.decodeEntities(songName)}${editCode}`
         const savePath = await window.ipcRenderer.invoke("save-dialog", defaultPath)
@@ -1289,9 +1296,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 })
             }
         }
-    }
+    })
 
-    const submit = async (value?: string) => {
+    const submit = useEffectEvent(async (value?: string) => {
         if (!value) return
         const songBuffer = await window.ipcRenderer.invoke("get-song", value)
         if (songBuffer) {
@@ -1301,22 +1308,24 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (artwork.includes("ytimg")) artwork = await functions.cropToCenterSquare(artwork)
             window.URL.revokeObjectURL(song)
             const blob = new Blob([new DataView(songBuffer)], {type: "audio/mpeg"})
+            let newSong = window.URL.createObjectURL(blob)
             setSongName(songName)
-            setSong(window.URL.createObjectURL(blob))
+            setSong(newSong)
             setSongCover(artwork)
             setSongUrl(value)
-            player.load(window.URL.createObjectURL(blob))
+            player.load(newSong)
             await Tone.loaded()
             updateDuration()
-            updateRecentFiles()
+            updateRecentFiles(songName, newSong, artwork, value, midi, midiDuration, bpm)
             switchState()
             stop()
             play(true)
             refreshState()
         }
-    }
+    })
 
-    const updateRecentFiles = () => {
+    const updateRecentFiles = (songName: string, song: string, songCover: string, songUrl: string,
+        midi: boolean, midiDuration: number, bpm: number) => {
         window.ipcRenderer.invoke("update-recent", {
             songName: songName, 
             song: song,
