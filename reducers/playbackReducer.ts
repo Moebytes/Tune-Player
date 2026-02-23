@@ -69,7 +69,8 @@ const playbackSlice = createSlice({
         secondsProgress: 0,
         progress: 0,
         dragProgress: null as number | null,
-        dragging: false
+        dragging: false,
+        abDragging: false
     },
     reducers: {
         setReverse: (state, action) => {state.reverse = action.payload},
@@ -133,7 +134,8 @@ const playbackSlice = createSlice({
         setSecondsProgress: (state, action) => {state.secondsProgress = action.payload},
         setProgress: (state, action) => {state.progress = action.payload},
         setDragProgress: (state, action) => {state.dragProgress = action.payload},
-        setDragging: (state, action) => {state.dragging = action.payload}
+        setDragging: (state, action) => {state.dragging = action.payload},
+        setABDragging: (state, action) => {state.abDragging = action.payload}
     }
 })
 
@@ -149,7 +151,8 @@ const {
     setAttack, setDecay, setSustain, setRelease, setPoly, setPortamento,
     setMouseFlag, setSavedLoop, setPitchLFO, setPitchLFORate, setStepFlag,
     setSplitBands, setSplitBandFreq, setPreviousVolume, setPaused, setSeekTo,
-    setSecondsProgress, setProgress, setDragProgress, setDragging, setBasicWave, setWaveType
+    setSecondsProgress, setProgress, setDragProgress, setDragging, setBasicWave, 
+    setWaveType, setABDragging
 } = playbackSlice.actions
 
 export const usePlaybackSelector = () => {
@@ -216,7 +219,8 @@ export const usePlaybackSelector = () => {
         secondsProgress: selector((state) => state.playback.secondsProgress),
         progress: selector((state) => state.playback.progress),
         dragProgress: selector((state) => state.playback.dragProgress),
-        dragging: selector((state) => state.playback.dragging)
+        dragging: selector((state) => state.playback.dragging),
+        abDragging: selector((state) => state.playback.abDragging)
     }
 }
 
@@ -284,7 +288,8 @@ export const usePlaybackActions = () => {
         setSecondsProgress: (state: number) => dispatch(setSecondsProgress(state)),
         setProgress: (state: number) => dispatch(setProgress(state)),
         setDragProgress: (state: number | null) => dispatch(setDragProgress(state)),
-        setDragging: (state: boolean) => dispatch(setDragging(state))
+        setDragging: (state: boolean) => dispatch(setDragging(state)),
+        setABDragging: (state: boolean) => dispatch(setABDragging(state))
     }
 }
 

@@ -87,7 +87,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         attack, decay, sustain, release, poly, portamento,
         mouseFlag, savedLoop, pitchLFO, pitchLFORate, stepFlag, splitBands,
         splitBandFreq, previousVolume, paused, seekTo, secondsProgress, progress,
-        dragProgress, dragging
+        dragProgress, dragging, abDragging
     } = usePlaybackSelector()
     const {
         setReverse, setPitch, setSpeed, setVolume, setMuted, setLoop, setABLoop,
@@ -100,9 +100,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setAttack, setDecay, setSustain, setRelease, setPoly, setPortamento,
         setMouseFlag, setSavedLoop, setPitchLFO, setPitchLFORate, setStepFlag, setSplitBands,
         setSplitBandFreq, setPreviousVolume, setPaused, setSeekTo, setSecondsProgress, setProgress,
-        setDragProgress, setDragging
+        setDragProgress, setDragging, setABDragging
     } = usePlaybackActions()
     const [effects, setEffects] = useState([] as {type: string, node: Tone.ToneAudioNode}[])
+    const [showSpeedPopup, setShowSpeedPopup] = useState(false)
+    const [showPitchPopup, setShowPitchPopup] = useState(false)
 
     const progressBar = useRef(null) as any
     const volumeBar = useRef(null) as any
@@ -110,8 +112,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const pitchBar = useRef(null) as any
     const pitchLFOBar = useRef(null) as any
     const pitchBandBar = useRef(null) as any
-    const pitchSlider = useRef<HTMLDivElement>(null)
-    const pitchBandSlider = useRef<HTMLDivElement>(null)
     const abSlider = useRef(null) as React.RefObject<any>
     const speedPopup = useRef<HTMLDivElement>(null)
     const pitchPopup = useRef<HTMLDivElement>(null)
@@ -153,18 +153,19 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const onWindowClick = (event: any) => {
             if (speedPopup.current?.style.display === "flex") {
                 if (!(speedPopup.current?.contains(event.target))) {
-                    if (event.target !== speedPopup.current) speedPopup.current!.style.display = "none"
+                    if (event.target !== speedPopup.current) setShowSpeedPopup(false)
                 }
             }
             if (pitchPopup.current?.style.display === "flex") {
                 if (!(pitchPopup.current?.contains(event.target))) {
-                    if (event.target !== pitchPopup.current) pitchPopup.current!.style.display = "none"
+                    if (event.target !== pitchPopup.current) setShowPitchPopup(false)
                 }
             }
         }
 
         const onWindowMouseUp = (event: any) => {
             setDragging(false)
+            setABDragging(false)
         }
         initState()
         abSlider.current.slider.style.display = "none"
@@ -313,41 +314,39 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const saved = await window.ipcRenderer.invoke("get-state")
         const synthSaved = await window.ipcRenderer.invoke("get-synth-state")
         if (saved.preservesPitch !== undefined) {
-            setPreservesPitch(saved.preservesPitch)
+            setPreservesPitch(Boolean(saved.preservesPitch))
         }
         if (saved.pitchLFO !== undefined) {
-            setPitchLFO(saved.pitchLFO)
+            setPitchLFO(Boolean(saved.pitchLFO))
         }
         if (saved.pitchLFORate !== undefined) {
-            setPitchLFORate(saved.pitchLFORate)
+            setPitchLFORate(Number(saved.pitchLFORate))
         }
         if (saved.splitBands !== undefined) {
-            setSplitBands(saved.splitBands)
+            setSplitBands(Boolean(saved.splitBands))
         }
         if (saved.splitBandFreq !== undefined) {
-            setSplitBandFreq(saved.splitBandFreq)
+            setSplitBandFreq(Number(saved.splitBandFreq))
         }
         if (saved.speed !== undefined) {
-            setSpeed(saved.speed)
+            setSpeed(Number(saved.speed))
         }
         if (saved.pitch !== undefined) {
-            setPitch(saved.pitch)
+            setPitch(Number(saved.pitch))
         }
         if (saved.reverse !== undefined) {
-            setReverse(saved.reverse)
+            setReverse(Boolean(saved.reverse))
         }
         if (saved.loop !== undefined) {
-            setLoop(saved.loop)
+            setLoop(Boolean(saved.loop))
         }
         if (synthSaved.wave !== undefined) setWave(synthSaved.wave)
-        if (synthSaved.attack !== undefined) setAttack(synthSaved.attack)
-        if (synthSaved.decay !== undefined) setDecay(synthSaved.decay)
-        if (synthSaved.sustain !== undefined) setSustain(synthSaved.sustain)
-        if (synthSaved.release !== undefined) setRelease(synthSaved.release)
-        if (synthSaved.poly !== undefined) setPoly(synthSaved.poly)
-        if (synthSaved.portamento !== undefined) setPortamento(synthSaved.portamento)
-        pitchLFOStyle()
-        pitchBandStyle()
+        if (synthSaved.attack !== undefined) setAttack(Number(synthSaved.attack))
+        if (synthSaved.decay !== undefined) setDecay(Number(synthSaved.decay))
+        if (synthSaved.sustain !== undefined) setSustain(Number(synthSaved.sustain))
+        if (synthSaved.release !== undefined) setRelease(Number(synthSaved.release))
+        if (synthSaved.poly !== undefined) setPoly(Boolean(synthSaved.poly))
+        if (synthSaved.portamento !== undefined) setPortamento(Number(synthSaved.portamento))
     }
 
     const refreshState = () => {
@@ -389,14 +388,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const applyEffects = () => {
         if (!soundtouchNode && !staticSoundtouchNode 
         && !staticSoundtouchNode2 && !lfoNode) return
-        player.disconnect()
-        soundtouchNode.disconnect()
-        staticSoundtouchNode.disconnect()
-        staticSoundtouchNode2.disconnect()
+        player?.disconnect()
+        soundtouchNode?.disconnect()
+        staticSoundtouchNode?.disconnect()
+        staticSoundtouchNode2?.disconnect()
         lfoNode.disconnect()
-        if (synths.length) synths.forEach((s) => s.disconnect())
+        if (synths.length) synths.forEach((s) => s?.disconnect())
         const nodes = effects.map((e) => e?.node).filter(Boolean)
-        if (nodes[0]) nodes.forEach((n) => n.disconnect())
+        if (nodes[0]) nodes.forEach((n) => n?.disconnect())
         if (midi) {
             if (synths.length) synths.forEach((s) => s.chain(...[...nodes, Tone.getDestination()]))
         } else {
@@ -479,7 +478,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             if (!midi) {
                 setDuration(player.buffer.duration / player.playbackRate)
-
                 functions.getBPM(player.buffer.get()!).then(({bpm}) => {
                     setBpm(bpm)
                     lfoNode.parameters.get("bpm").value = bpm
@@ -497,12 +495,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (!checkBuffer()) return
         await Tone.start()
         updateDuration()
-        /*
-        if (reverse) {
-            if (progress === 0) stop()
-        } else {
-            if (progress === 100) stop()
-        }*/
         if (Tone.getTransport().state === "started" && !alwaysPlay) {
             if (midi) disposeSynths()
             Tone.getTransport().pause()
@@ -559,7 +551,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             currentPlayer.playbackRate = currentSpeed
             const pitchCorrect = preservesPitch ? 1 / currentSpeed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(pitch) * pitchCorrect
-            applyEffects()
             let percent = Tone.getTransport().seconds / currentDuration
             setDuration(currentDuration)
             let val = percent * currentDuration
@@ -577,12 +568,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     useEffect(() => {
         updateSpeed()
-    }, [speed])
+    }, [speed, preservesPitch])
 
     const updatePreservesPitch = (value?: boolean) => {
         setPreservesPitch(value !== undefined ? value : !preservesPitch)
         saveState()
-        updateSpeed()
     }
 
     const updatePitch = async (value?: number | string, applyState?: any) => {
@@ -601,22 +591,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         updatePitch()
     }, [pitch])
 
-    const pitchLFOStyle = () => {
-        if (!pitchSlider.current) return
-        pitchSlider.current.style.width = "100%"
-        if (pitchLFO) {
-            pitchSlider.current.style.display = "flex"
-        } else {
-            pitchSlider.current.style.display = "none"
-        }
-    }
-
     const updatePitchLFO = (value?: boolean) => {
         setPitchLFO(value !== undefined ? value : !pitchLFO)
-        pitchLFOStyle()
         saveState()
-        applyEffects()
     }
+
+    useEffect(() => {
+        applyEffects()
+    }, [pitch, pitchLFO, pitchLFORate, splitBands, splitBandFreq])
 
     const updatePitchLFORate = async (value?: number | string) => {
         if (!lfoNode) return
@@ -628,21 +610,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     useEffect(() => {
         updatePitchLFORate()
-    }, [pitchLFORate])
-
-    const pitchBandStyle = () => {
-        if (!pitchBandSlider.current) return
-        pitchBandSlider.current.style.width = "100%"
-        if (splitBands) {
-            pitchBandSlider.current.style.display = "flex"
-        } else {
-            pitchBandSlider.current.style.display = "none"
-        }
-    }
+    }, [pitchLFORate, wave])
 
     const pitchBands = (value?: boolean) => {
         setSplitBands(value !== undefined ? value : !splitBands)
-        pitchBandStyle()
         saveState()
         applyEffects()
     }
@@ -739,6 +710,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setProgress(0)
         setDragProgress(null)
         setDragging(false)
+        setABDragging(false)
 
         player.playbackRate = 1
         soundtouchNode.parameters.get("pitch").value = 1
@@ -748,7 +720,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         Tone.getTransport().loop = false
 
         abSlider.current.slider.style.display = "none"
-        pitchLFOStyle()
         updateDuration()
         stop()
         play()
@@ -950,20 +921,20 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         switchState()
         stop()
         play(true)
-        setTimeout(() => {
-            refreshState()
-        }, 100)
+        refreshState()
     }
 
-    const applyAB = (duration: number) => {
+    const applyAB = (duration: number, start?: number, end?: number) => {
         if (!abloop) return
+        let startPos = start !== undefined ? start : loopStart
+        let endPos = end !== undefined ? end : loopEnd
         let percent = duration / 100.0
         if (reverse) {
-            Tone.getTransport().loopStart = (100 - (loopEnd / 10)) * percent
-            Tone.getTransport().loopEnd = (100 - (loopStart / 10)) * percent
+            Tone.getTransport().loopStart = (100 - endPos) * percent
+            Tone.getTransport().loopEnd = (100 - startPos) * percent
         } else {
-            Tone.getTransport().loopStart = (loopStart / 10) * percent
-            Tone.getTransport().loopEnd = (loopEnd / 10) * percent
+            Tone.getTransport().loopStart = startPos * percent
+            Tone.getTransport().loopEnd = endPos * percent
         }
     }
 
@@ -971,14 +942,18 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setLoopStart(value[0])
         setLoopEnd(value[1])
         setDragging(false)
+        setABDragging(false)
         Tone.getTransport().loop = true
+        applyAB(duration, value[0], value[1])
         if (Tone.getTransport().state === "paused") {
             Tone.getTransport().start()
             setPaused(false)
         }
-        applyAB(duration)
-        if (Tone.getTransport().loopStart === Tone.getTransport().loopEnd) Tone.getTransport().loopStart = (Tone.getTransport().loopEnd as number) - 1
-        if ((Tone.getTransport().seconds >= Number(Tone.getTransport().loopStart)) && (Tone.getTransport().seconds <= Number(Tone.getTransport().loopEnd))) return
+        if (Tone.getTransport().loopStart === Tone.getTransport().loopEnd) {
+            Tone.getTransport().loopStart = (Tone.getTransport().loopEnd as number) - 1
+        }
+        if ((Tone.getTransport().seconds >= Number(Tone.getTransport().loopStart)) 
+            && (Tone.getTransport().seconds <= Number(Tone.getTransport().loopEnd))) return
         let val = Number(Tone.getTransport().loopStart)
         if (val < 0) val = 0
         if (val > duration - 1) val = duration - 1
@@ -1501,19 +1476,23 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         lowshelf()
     }, [lowshelfCutoff, lowshelfGain, filterResonance, filterSlope])
 
-    const showSpeedPopup = () => {
-        if (speedPopup.current!.style.display === "flex") {
-            speedPopup.current!.style.display = "none"
-        } else {
-            speedPopup.current!.style.display = "flex"
-        }
+    const getLFORate = () => {
+        if (pitchLFORate === 5) return "1/1"
+        if (pitchLFORate === 4) return "1/2"
+        if (pitchLFORate === 3) return "1/4"
+        if (pitchLFORate === 2) return "1/8"
+        if (pitchLFORate === 1) return "1/16"
+        if (pitchLFORate === 0) return "1/32"
+        return "1/16"
     }
 
-    const showPitchPopup = () => {
-        if (pitchPopup.current!.style.display === "flex") {
-            pitchPopup.current!.style.display = "none"
-        } else {
-            pitchPopup.current!.style.display = "flex"
+    const togglePopup = (popup: "speed" | "pitch") => {
+        if (popup === "speed") {
+            setShowPitchPopup(false)
+            setShowSpeedPopup((prev) => !prev)
+        } else if (popup === "pitch") {
+            setShowSpeedPopup(false)
+            setShowPitchPopup((prev) => !prev)
         }
     }
 
@@ -1551,55 +1530,64 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     </div>
                     <div className="player-row">
                         <ReverseIcon className={`player-button ${reverse && "active-button"}`} onClick={() => setReverse(!reverse)}/>
-                        <div className="speed-popup-container" ref={speedPopup} style={({display: "none"})}>
+                        {showSpeedPopup ? <div className="speed-popup-container" ref={speedPopup}>
                             <div className="speed-popup">
-                                <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} 
-                                onChange={(value: number) => setSpeed(value)} min={0.5} max={4} step={0.5} value={speed}/>
-                                <div className="speed-checkbox-container">
-                                    <p className="speed-text">Pitch?</p>
-                                    {preservesPitch ?
+                                <div className="speed-popup-inner-container">
+                                    <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} 
+                                    onChange={(value: number) => setSpeed(value)} min={0.5} max={4} step={0.5} value={speed}/>
+                                    <span className="speed-popup-text">{speed}x</span>
+                                </div>
+                                <div className="speed-popup-inner-container">
+                                    <span className="speed-popup-text">Pitch?</span>
+                                    {!preservesPitch ?
                                     <CheckboxCheckedIcon className="speed-checkbox" onClick={() => updatePreservesPitch()}/> :
                                     <CheckboxIcon className="speed-checkbox" onClick={() => updatePreservesPitch()}/>}
-                                </div>       
+                                </div>
                             </div>
-                        </div>
-                        <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} onClick={() => showSpeedPopup()}/>
-                        <div className="pitch-popup-container" ref={pitchPopup} style={({display: "none"})}>
+                        </div> : null}
+                        <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} onClick={() => togglePopup("speed")}/>
+                        {showPitchPopup ? <div className="pitch-popup-container" ref={pitchPopup}>
                             <div className="pitch-popup">
-                                <Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBar} 
-                                onChange={(value) => setPitch(value)} min={-24} max={24} step={12} value={pitch}/>
-                                <div className="pitch-checkbox-container">
-                                    <p className="speed-text">LFO?</p>
+                                <div className="pitch-popup-inner-container">
+                                    <Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBar} 
+                                    onChange={(value) => setPitch(value)} min={-24} max={24} step={12} value={pitch}/>
+                                    <span className="pitch-popup-text">{pitch < 0 ? "" : "+"}{pitch}</span>
+                                </div>
+
+                                <div className="pitch-popup-inner-container" style={{gap: "0.3rem"}}>
+                                    <span className="pitch-popup-mini-text">LFO?</span>
                                     {pitchLFO ?
                                     <CheckboxCheckedIcon className="pitch-checkbox" onClick={() => updatePitchLFO()}/> : 
                                     <CheckboxIcon className="pitch-checkbox" onClick={() => updatePitchLFO()}/>}
-                                    
+                                    <Slider className="pitch-mini-slider" trackClassName="pitch-mini-slider-track" thumbClassName="pitch-mini-slider-handle" 
+                                    ref={pitchLFOBar} onChange={(value: number) => setPitchLFORate(value)} min={0} max={5} step={1} value={pitchLFORate}/>
+                                    <span className="pitch-popup-mini-text" style={{width: "40px"}}>{getLFORate()}</span>
                                 </div>
-                                <div ref={pitchSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" 
-                                ref={pitchLFOBar} onChange={(value: number) => setPitchLFORate(value)} min={0} max={5} step={1} value={pitchLFORate}/></div>
-                                <div className="pitch-checkbox-container">
-                                    <p className="speed-text">Split Bands?</p>
+                                
+                                <div className="pitch-popup-inner-container" style={{gap: "0.3rem"}}>
+                                    <span className="pitch-popup-mini-text">Multiband?</span>
                                     {splitBands ?
                                     <CheckboxCheckedIcon className="pitch-checkbox" onClick={() => pitchBands()}/> :
                                     <CheckboxIcon className="pitch-checkbox" onClick={() => pitchBands()}/>}
+                                    <Slider className="pitch-mini-slider" trackClassName="pitch-mini-slider-track"
+                                    thumbClassName="pitch-mini-slider-handle" ref={pitchBandBar} onChange={(value: number) => pitchBandFreq(value)} 
+                                    min={0} max={1000} step={1} value={splitBandFreq}/>
+                                    <span className="pitch-popup-mini-text" style={{width: "40px"}}>{splitBandFreq}Hz</span>
                                     
                                 </div>
-                                <div ref={pitchBandSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track"
-                                thumbClassName="pitch-slider-handle" ref={pitchBandBar} onChange={(value: number) => pitchBandFreq(value)} 
-                                min={0} max={1000} step={1} value={pitchBandFreq}/></div>
                             </div>
-                        </div>
-                        <PitchIcon className={`player-button ${pitch !== 0 && "active-button"}`} onClick={() => showPitchPopup()}/>
+                        </div> : null}
+                        <PitchIcon className={`player-button ${pitch !== 0 && "active-button"}`} onClick={() => togglePopup("pitch")}/>
                         <div className="progress-container">
                             <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle"
                             ref={progressBar} min={0} max={100} onBeforeChange={() => setDragging(true)} onChange={(value: number) => updateProgressText(value)} 
-                            onAfterChange={(value: number) => seek(value)} value={dragging ? ((dragProgress || 0) / duration) * 100 : progress}/>
+                            onAfterChange={(value: number) => seek(value)} value={dragging && !abDragging ? ((dragProgress || 0) / duration) * 100 : progress}/>
 
                             <Slider className="ab-slider" trackClassName="ab-slider-track" thumbClassName="ab-slider-thumb" ref={abSlider} min={0} max={100} 
-                            value={[loopStart, loopEnd]} onBeforeChange={() => setDragging(true)} onChange={(value: number[]) => updateProgressTextAB(value)} 
-                            onAfterChange={(value: number[]) => {updateABLoop(value); abSlider.current?.blur()}} pearling minDistance={1}/>
+                            value={[loopStart, loopEnd]} onBeforeChange={() => {setDragging(true); setABDragging(true)}} onChange={(value: number[]) => updateProgressTextAB(value)} 
+                            onAfterChange={(value: number[]) => updateABLoop(value)} pearling minDistance={1}/>
                         </div>
-                        <LoopIcon className={`player-button ${loop && "active-button"}`} onClick={() => updateLoop()}/>
+                        <LoopIcon className={`player-button ${(loop || abloop) && "active-button"}`} onClick={() => updateLoop()}/>
                         <ABLoopIcon className={`player-button ${abloop && "active-button"}`} onClick={() => toggleAB()}/>
                         <RevertIcon className="player-button" onClick={() => reset()}/>
                     </div>

@@ -140,6 +140,7 @@
   },
   "dependencies": {
     "@electron/osx-sign": "^2.3.0",
+    "@rc-component/slider": "github:Moestash/rc-slider",
     "@reduxjs/toolkit": "^2.11.2",
     "@tonejs/midi": "^2.0.28",
     "audio-encoder": "^1.0.4",
