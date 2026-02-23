@@ -5,7 +5,7 @@ import path from "path"
 import process from "process"
 import Youtube from "youtube.ts"
 import Soundcloud from "soundcloud.ts"
-import functions from "./structures/functions"
+import functions, {SongItem} from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
 import pack from "./package.json"
 import fs from "fs"
@@ -128,7 +128,7 @@ ipcMain.handle("audio-effects", () => {
   window?.webContents.send("show-effects-dialog")
 })
 
-ipcMain.handle("get-previous", async (event, info: any) => {
+ipcMain.handle("get-previous", async (event, info: SongItem) => {
   const song = info.song?.replace("file:///", "")
   if (fs.existsSync(song)) {
     const directory = path.dirname(song)
@@ -143,7 +143,7 @@ ipcMain.handle("get-previous", async (event, info: any) => {
   }
 })
 
-ipcMain.handle("get-next", async (event, info: any) => {
+ipcMain.handle("get-next", async (event, info: SongItem) => {
   const song = info.song?.replace("file:///", "")
   if (fs.existsSync(song)) {
     const directory = path.dirname(song)
@@ -162,8 +162,8 @@ ipcMain.handle("get-recent", () => {
   return store.get("recent", [])
 })
 
-ipcMain.handle("update-recent", (event, info: any) => {
-  let recent = store.get("recent", []) as any[]
+ipcMain.handle("update-recent", (event, info: SongItem) => {
+  let recent = store.get("recent", []) as SongItem[]
   while (recent.length > 160) recent.pop()
   const dupe = functions.findDupe(recent, info)
   if (dupe !== -1) recent.splice(dupe, 1)
@@ -172,15 +172,15 @@ ipcMain.handle("update-recent", (event, info: any) => {
   window?.webContents.send("update-recent-gui")
 })
 
-ipcMain.handle("remove-recent", (event, info: any) => {
-  let recent = store.get("recent", []) as any[]
+ipcMain.handle("remove-recent", (event, info: SongItem) => {
+  let recent = store.get("recent", []) as SongItem[]
   const dupe = functions.findDupe(recent, info)
   if (dupe !== -1) recent.splice(dupe, 1)
   store.set("recent", recent)
   window?.webContents.send("update-recent-gui")
 })
 
-ipcMain.handle("invoke-play", (event, info: any) => {
+ipcMain.handle("invoke-play", (event, info: SongItem) => {
   window?.webContents.send("invoke-play", info)
 })
 
@@ -372,7 +372,7 @@ if (!singleLock) {
   })
 
   app.on("ready", () => {
-    window = new BrowserWindow({width: 770, height: 620, minWidth: 720, minHeight: 450, frame: false, transparent: true,
+    window = new BrowserWindow({width: 800, height: 680, minWidth: 720, minHeight: 450, frame: false, transparent: true,
       show: false, hasShadow: false, backgroundColor: "#29091e", center: true, webPreferences: {webSecurity: false,
       preload: path.join(__dirname, "../preload/index.js")}})
     window.loadFile(path.join(__dirname, "../renderer/index.html"))

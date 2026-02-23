@@ -40,10 +40,36 @@
     justify-content: space-evenly;
 }
 
-.recent-img {
-    max-width: 16vw;
-    height: auto;
+.recent-song-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 18vw;
     margin: 10px;
+}
+
+.recent-img {
+    max-width: 18vw;
+    height: auto;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.recent-song-text-container {
+    display: flex;
+    padding: 0.25rem 0.3125rem;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background: linear-gradient(180deg, var(--background) 0%, var(--navColor) 100%);
+}
+
+.recent-song-text {
+    color: var(--textColor);
+    font-family: "Honoka Shin Antique-Kaku";
+    font-size: 13px;
 }
 
 .recent-square {

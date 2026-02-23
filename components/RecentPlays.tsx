@@ -2,10 +2,11 @@ import React, {useEffect, useReducer, useState} from "react"
 import square from "../assets/images/square.png"
 import LeftArrowIcon from "../assets/svg/left-arrow.svg"
 import RightArrowIcon from "../assets/svg/right-arrow.svg"
+import {SongItem} from "../structures/functions"
 import "./styles/recentplays.less"
 
-let recent = [] as any[]
-let pages = [] as any
+let recent = [] as SongItem[]
+let pages = [] as SongItem[][]
 
 const RecentPlays: React.FunctionComponent = (props) => {
     const [ignored, forceUpdate] = useReducer(x => x + 1, 0)
@@ -17,6 +18,7 @@ const RecentPlays: React.FunctionComponent = (props) => {
     useEffect(() => {
         const updateRecentGUI = async () => {
             recent = await window.ipcRenderer.invoke("get-recent")
+            console.log(recent)
             let newPages = [] as any
             let counter = 0;
             while (counter < recent.length - 1) {
@@ -61,17 +63,33 @@ const RecentPlays: React.FunctionComponent = (props) => {
         let row1 = [] as any
         let row2 = [] as any
         for (let i = 0; i < 4; i++) {
-            if (!pages[pageIndex]?.[i]) {
+            const item = pages[pageIndex]?.[i]
+            if (!item) {
                 row1.push(<img className="recent-square" src={square}/>)
             } else {
-                row1.push(<img className="recent-img" onClick={() => invokePlay(pages[pageIndex][i])} src={pages[pageIndex][i].songCover} onContextMenu={() => setDeleteQueue(pages[pageIndex][i])}/>)
+                row1.push(
+                    <div className="recent-song-item">
+                        <img className="recent-img" onClick={() => invokePlay(item)} src={item.songCover} 
+                        onContextMenu={() => setDeleteQueue(item)}/>
+                        <div className="recent-song-text-container">
+                            <span className="recent-song-text">{item.songName}</span>
+                        </div>
+                    </div>)
             }
         }
         for (let i = 4; i < 8; i++) {
-            if (!pages[pageIndex]?.[i]) {
+            const item = pages[pageIndex]?.[i]
+            if (!item) {
                 row2.push(<img className="recent-square" src={square}/>)
             } else {
-                row2.push(<img className="recent-img" onClick={() => invokePlay(pages[pageIndex][i])} src={pages[pageIndex][i].songCover} onContextMenu={() => setDeleteQueue(pages[pageIndex][i])}/>)
+                row2.push(
+                <div className="recent-song-item">
+                    <img className="recent-img" onClick={() => invokePlay(item)} src={item.songCover} 
+                    onContextMenu={() => setDeleteQueue(item)}/>
+                    <div className="recent-song-text-container">
+                        <span className="recent-song-text">{item.songName}</span>
+                    </div>
+                </div>)
             }
         }
         return (

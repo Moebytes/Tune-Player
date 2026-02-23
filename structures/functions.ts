@@ -1,6 +1,16 @@
 import {guess} from "web-audio-beat-detector"
 import path from "path"
 
+export interface SongItem {
+    bpm: number
+    duration: number
+    midi: boolean
+    song: string
+    songCover: string
+    songName: string,
+    songUrl: string
+}
+
 export default class Functions {
     public static arrayIncludes = (str: string, arr: string[]) => {
         for (let i = 0; i < arr.length; i++) {
@@ -13,7 +23,7 @@ export default class Functions {
         return arr.filter((item) => item !== val)
     }
 
-    public static findDupe = (recent: any[], info: any) => {
+    public static findDupe = (recent: SongItem[], info: SongItem) => {
         for (let i = recent.length - 1; i >= 0; i--) {
             if (recent[i].midi) {
                 if (recent[i].bpm === info.bpm
