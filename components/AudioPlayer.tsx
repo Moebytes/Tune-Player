@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from "react"
+import React, {useEffect, useState, useRef} from "react"
 import {usePlaybackSelector, usePlaybackActions} from "../store"
 import path from "path"
 import Slider from "react-slider"
@@ -79,7 +79,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const {
         reverse, pitch, speed, volume, muted, loop, abloop,
         loopStart, loopEnd, preservesPitch, duration, song, songName,
-        songCover, songUrl, editCode, download, effects, playHover,
+        songCover, songUrl, editCode, download, playHover,
         volumeHover, sampleRate, reverbMix, reverbDecay, delayMix, delayTime,
         delayFeedback, phaserMix, phaserFrequency, lowpassCutoff, highpassCutoff, filterResonance,
         filterSlope, highshelfCutoff, highshelfGain, lowshelfCutoff, lowshelfGain, midi,
@@ -92,7 +92,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const {
         setReverse, setPitch, setSpeed, setVolume, setMuted, setLoop, setABLoop,
         setLoopStart, setLoopEnd, setPreservesPitch, setDuration, setSong, setSongName,
-        setSongCover, setSongUrl, setEditCode, setDownload, setEffects, setPlayHover,
+        setSongCover, setSongUrl, setEditCode, setDownload, setPlayHover,
         setVolumeHover, setSampleRate, setReverbMix, setReverbDecay, setDelayMix, setDelayTime,
         setDelayFeedback, setPhaserMix, setPhaserFrequency, setLowpassCutoff, setHighpassCutoff, setFilterResonance,
         setFilterSlope, setHighshelfCutoff, setHighshelfGain, setLowshelfCutoff, setLowshelfGain, setMidi,
@@ -102,33 +102,19 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSplitBandFreq, setPreviousVolume, setPaused, setSeekTo, setSecondsProgress, setProgress,
         setDragProgress, setDragging
     } = usePlaybackActions()
+    const [effects, setEffects] = useState([] as {type: string, node: Tone.ToneAudioNode}[])
 
     const progressBar = useRef(null) as any
     const volumeBar = useRef(null) as any
     const speedBar = useRef(null) as any
-    const speedCheckbox = useRef<HTMLImageElement>(null)
-    const pitchCheckbox = useRef<HTMLImageElement>(null)
-    const pitchBandCheckbox = useRef<HTMLImageElement>(null)
     const pitchBar = useRef(null) as any
     const pitchLFOBar = useRef(null) as any
     const pitchBandBar = useRef(null) as any
     const pitchSlider = useRef<HTMLDivElement>(null)
     const pitchBandSlider = useRef<HTMLDivElement>(null)
     const abSlider = useRef(null) as React.RefObject<any>
-    const searchBox = useRef<HTMLInputElement>(null)
-    const playButton = useRef<HTMLImageElement>(null)
-    const previousButton = useRef<HTMLImageElement>(null)
-    const nextButton = useRef<HTMLImageElement>(null) 
-    const volumeRef = useRef<HTMLImageElement>(null)
     const speedPopup = useRef<HTMLDivElement>(null)
     const pitchPopup = useRef<HTMLDivElement>(null)
-    const speedImg = useRef<HTMLImageElement>(null)
-    const pitchImg = useRef<HTMLImageElement>(null)
-    const reverseImg = useRef<HTMLImageElement>(null)
-    const resetImg = useRef<HTMLImageElement>(null)
-    const loopImg = useRef<HTMLImageElement>(null)
-    const abLoopImg = useRef<HTMLImageElement>(null)
-    const songTitle = useRef<HTMLHeadingElement>(null)
 
     useEffect(() => {
         progressBar.current?.resize()
@@ -136,6 +122,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         volumeBar.current?.resize()
         speedBar.current?.resize()
         pitchBar.current?.resize()
+        pitchLFOBar.current?.resize()
+        pitchBandBar.current?.resize()
     })
 
     useEffect(() => {
@@ -164,17 +152,20 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         /* Close speed and pitch boxes */
         const onWindowClick = (event: any) => {
             if (speedPopup.current?.style.display === "flex") {
-                if (!(speedPopup.current?.contains(event.target) || speedImg.current?.contains(event.target))) {
+                if (!(speedPopup.current?.contains(event.target))) {
                     if (event.target !== speedPopup.current) speedPopup.current!.style.display = "none"
                 }
             }
             if (pitchPopup.current?.style.display === "flex") {
-                if (!(pitchPopup.current?.contains(event.target) || pitchImg.current?.contains(event.target))) {
+                if (!(pitchPopup.current?.contains(event.target))) {
                     if (event.target !== pitchPopup.current) pitchPopup.current!.style.display = "none"
                 }
             }
         }
 
+        const onWindowMouseUp = (event: any) => {
+            setDragging(false)
+        }
         initState()
         abSlider.current.slider.style.display = "none"
         window.ipcRenderer.on("open-file", openFile)
@@ -182,12 +173,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
         window.addEventListener("click", onWindowClick)
+        window.addEventListener("mouseup", onWindowMouseUp)
         return () => {
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
             window.removeEventListener("click", onWindowClick)
+            window.removeEventListener("mouseup", onWindowMouseUp)
         }
     }, [])
 
@@ -245,7 +238,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         return () => {
             window.clearInterval(interval)
         }
-    }, [reverse, dragging, loop, duration, midi])
+    }, [reverse, dragging, loop, duration, midi, synths, midiFile, midiDuration, speed, pitch, preservesPitch,
+        poly, attack, decay, sustain, release, portamento, wave
+    ])
 
     useEffect(() => {
         /* Precision on shift click */
@@ -553,6 +548,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const updateSpeed = async (value?: number | string, applyState?: any) => {
         if (!soundtouchNode) return
         let currentSpeed = value !== undefined ? Number(value) : speed
+        let currentDuration = player.buffer.duration / currentSpeed
         if (midi) {
             await playMIDI()
         } else {
@@ -564,17 +560,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             const pitchCorrect = preservesPitch ? 1 / currentSpeed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(pitch) * pitchCorrect
             applyEffects()
-            let percent = Tone.getTransport().seconds / duration
-            setDuration(player.buffer.duration / currentSpeed)
-            let val = percent * duration
+            let percent = Tone.getTransport().seconds / currentDuration
+            setDuration(currentDuration)
+            let val = percent * currentDuration
             if (val < 0) val = 0
-            if (val > duration - 1) val = duration - 1
+            if (val > currentDuration - 1) val = currentDuration - 1
             Tone.getTransport().seconds = val
         }
         if (abloop) {
-            applyAB(duration)
+            applyAB(currentDuration)
         } else {
-            Tone.getTransport().loopEnd = duration
+            Tone.getTransport().loopEnd = currentDuration
         }
         saveState()
     }
@@ -679,7 +675,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             currentPlayer.reverse = currentReverse
         }
         applyAB(duration)
-        if (!applyState) updateMetadata()
         saveState()
     }
 
@@ -755,7 +750,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         abSlider.current.slider.style.display = "none"
         pitchLFOStyle()
         updateDuration()
-        updateMetadata()
         stop()
         play()
         window.ipcRenderer.invoke("reset-effects")
@@ -777,7 +771,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().loopStart = abloop ? (loopStart / 100) * duration : 0
             Tone.getTransport().loopEnd = abloop ? (loopEnd / 100) * duration : duration
         }
-        updateMetadata()
         saveState()
     }
 
@@ -835,11 +828,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             updateProgressText(value[0])
         }
-    }
-
-    const updateMetadata = () => {
-        if (songTitle.current) songTitle.current.innerText = songName
-        if (songCover.current) songCover.current.src = songCover
     }
     
     const updateSynth = () => {
@@ -907,7 +895,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().seconds = val
         }
         updateDuration(totalDuration)
-        updateMetadata()
         applyEffects()
     }
 
@@ -959,12 +946,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         player.load(file)
         await Tone.loaded()
         updateDuration()
-        updateMetadata()
         updateRecentFiles()
         switchState()
         stop()
         play(true)
-        refreshState()
+        setTimeout(() => {
+            refreshState()
+        }, 100)
     }
 
     const applyAB = (duration: number) => {
@@ -1015,7 +1003,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().loopStart = 0
             Tone.getTransport().loopEnd = duration
         }
-        updateMetadata()
         saveState()
     }
 
@@ -1322,9 +1309,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const submit = async (value?: string) => {
-        if (!value) value = searchBox.current?.value
         if (!value) return
-        searchBox.current!.value = ""
         const songBuffer = await window.ipcRenderer.invoke("get-song", value)
         if (songBuffer) {
             setMidi(false)
@@ -1340,7 +1325,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             player.load(window.URL.createObjectURL(blob))
             await Tone.loaded()
             updateDuration()
-            updateMetadata()
             updateRecentFiles()
             switchState()
             stop()
@@ -1540,13 +1524,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 <div className="player-container">
                     <div className="player-row">
                         <div className="player-text-container">
-                            <h2 ref={songTitle} className="player-text">{songName}</h2>
+                            <h2 className="player-text">{songName}</h2>
                         </div>
                         <div className="play-button-container">
-                            <PrevIcon className="player-button skip-button" ref={previousButton} onClick={() => previous()}/>
-                            {paused ? <PlayIcon className="player-button play-button" ref={playButton} onClick={() => play()}/> : 
-                            <PauseIcon className="player-button play-button" ref={playButton} onClick={() => play()}/>}
-                            <NextIcon className="player-button skip-button" ref={nextButton} onClick={() => next()}/>
+                            <PrevIcon className="player-button skip-button" onClick={() => previous()}/>
+                            {paused ? <PlayIcon className="player-button play-button" onClick={() => play()}/> : 
+                            <PauseIcon className="player-button play-button" onClick={() => play()}/>}
+                            <NextIcon className="player-button skip-button" onClick={() => next()}/>
                         </div>
                         <div className="progress-text-container">
                             <p className="player-text">
@@ -1557,16 +1541,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                         </div>
                         <div className="volume-container">
                             {volume <= 0.01 ?
-                            <VolumeMuteIcon className="player-button volume-button" ref={volumeRef} onClick={() => mute()}/> : 
+                            <VolumeMuteIcon className="player-button volume-button" onClick={() => mute()}/> : 
                             volume <= 0.5 ?
-                            <VolumeLowIcon className="player-button volume-button" ref={volumeRef} onClick={() => mute()}/> : 
-                            <VolumeIcon className="player-button volume-button" ref={volumeRef} onClick={() => mute()}/>}
+                            <VolumeLowIcon className="player-button volume-button" onClick={() => mute()}/> : 
+                            <VolumeIcon className="player-button volume-button" onClick={() => mute()}/>}
                             <Slider className="volume-slider" trackClassName="volume-slider-track" thumbClassName="volume-slider-handle" ref={volumeBar} 
                             onChange={(value: number) => updateVolume(value)} min={0} max={1} step={0.05} value={volume}/>
                         </div>
                     </div>
                     <div className="player-row">
-                        <ReverseIcon className={`player-button ${reverse && "active-button"}`} ref={reverseImg} onClick={() => updateReverse()}/>
+                        <ReverseIcon className={`player-button ${reverse && "active-button"}`} onClick={() => setReverse(!reverse)}/>
                         <div className="speed-popup-container" ref={speedPopup} style={({display: "none"})}>
                             <div className="speed-popup">
                                 <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} 
@@ -1574,12 +1558,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                                 <div className="speed-checkbox-container">
                                     <p className="speed-text">Pitch?</p>
                                     {preservesPitch ?
-                                    <CheckboxCheckedIcon className="speed-checkbox" ref={speedCheckbox} onClick={() => updatePreservesPitch()}/> :
-                                    <CheckboxIcon className="speed-checkbox" ref={speedCheckbox} onClick={() => updatePreservesPitch()}/>}
+                                    <CheckboxCheckedIcon className="speed-checkbox" onClick={() => updatePreservesPitch()}/> :
+                                    <CheckboxIcon className="speed-checkbox" onClick={() => updatePreservesPitch()}/>}
                                 </div>       
                             </div>
                         </div>
-                        <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} ref={speedImg} onClick={() => showSpeedPopup()}/>
+                        <SpeedIcon className={`player-button ${speed !== 1 && "active-button"}`} onClick={() => showSpeedPopup()}/>
                         <div className="pitch-popup-container" ref={pitchPopup} style={({display: "none"})}>
                             <div className="pitch-popup">
                                 <Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBar} 
@@ -1587,8 +1571,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                                 <div className="pitch-checkbox-container">
                                     <p className="speed-text">LFO?</p>
                                     {pitchLFO ?
-                                    <CheckboxCheckedIcon className="pitch-checkbox" ref={pitchCheckbox} onClick={() => updatePitchLFO()}/> : 
-                                    <CheckboxIcon className="pitch-checkbox" ref={pitchCheckbox} onClick={() => updatePitchLFO()}/>}
+                                    <CheckboxCheckedIcon className="pitch-checkbox" onClick={() => updatePitchLFO()}/> : 
+                                    <CheckboxIcon className="pitch-checkbox" onClick={() => updatePitchLFO()}/>}
                                     
                                 </div>
                                 <div ref={pitchSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" 
@@ -1596,27 +1580,28 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                                 <div className="pitch-checkbox-container">
                                     <p className="speed-text">Split Bands?</p>
                                     {splitBands ?
-                                    <CheckboxCheckedIcon className="pitch-checkbox" ref={pitchBandCheckbox} onClick={() => pitchBands()}/> :
-                                    <CheckboxIcon className="pitch-checkbox" ref={pitchBandCheckbox} onClick={() => pitchBands()}/>}
+                                    <CheckboxCheckedIcon className="pitch-checkbox" onClick={() => pitchBands()}/> :
+                                    <CheckboxIcon className="pitch-checkbox" onClick={() => pitchBands()}/>}
                                     
                                 </div>
-                                <div ref={pitchBandSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track" 
+                                <div ref={pitchBandSlider}><Slider className="pitch-slider" trackClassName="pitch-slider-track"
                                 thumbClassName="pitch-slider-handle" ref={pitchBandBar} onChange={(value: number) => pitchBandFreq(value)} 
                                 min={0} max={1000} step={1} value={pitchBandFreq}/></div>
                             </div>
                         </div>
-                        <PitchIcon className={`player-button ${pitch !== 0 && "active-button"}`} ref={pitchImg} onClick={() => showPitchPopup()}/>
-                        <div className="progress-container" onMouseUp={() => setDragging(false)}>
-                            <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle" onKeyDown={(event) => event.preventDefault()}
+                        <PitchIcon className={`player-button ${pitch !== 0 && "active-button"}`} onClick={() => showPitchPopup()}/>
+                        <div className="progress-container">
+                            <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle"
                             ref={progressBar} min={0} max={100} onBeforeChange={() => setDragging(true)} onChange={(value: number) => updateProgressText(value)} 
                             onAfterChange={(value: number) => seek(value)} value={dragging ? ((dragProgress || 0) / duration) * 100 : progress}/>
+
                             <Slider className="ab-slider" trackClassName="ab-slider-track" thumbClassName="ab-slider-thumb" ref={abSlider} min={0} max={100} 
                             value={[loopStart, loopEnd]} onBeforeChange={() => setDragging(true)} onChange={(value: number[]) => updateProgressTextAB(value)} 
-                            onAfterChange={(value: number[]) => updateABLoop(value)} pearling minDistance={1}/>
+                            onAfterChange={(value: number[]) => {updateABLoop(value); abSlider.current?.blur()}} pearling minDistance={1}/>
                         </div>
-                        <LoopIcon className={`player-button ${loop && "active-button"}`} ref={loopImg} onClick={() => updateLoop()}/>
-                        <ABLoopIcon className={`player-button ${abloop && "active-button"}`} ref={abLoopImg} onClick={() => toggleAB()}/>
-                        <RevertIcon className="player-button" ref={resetImg} onClick={() => reset()}/>
+                        <LoopIcon className={`player-button ${loop && "active-button"}`} onClick={() => updateLoop()}/>
+                        <ABLoopIcon className={`player-button ${abloop && "active-button"}`} onClick={() => toggleAB()}/>
+                        <RevertIcon className="player-button" onClick={() => reset()}/>
                     </div>
                 </div>
             </section>
