@@ -13,7 +13,8 @@ export type StoreState = ReturnType<typeof store.getState>
 export type StoreDispatch = typeof store.dispatch
 
 export {
-    useThemeSelector, useThemeActions
+    useThemeSelector, useThemeActions,
+    usePlaybackSelector, usePlaybackActions
 }
 
 export default store

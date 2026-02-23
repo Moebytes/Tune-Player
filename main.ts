@@ -80,7 +80,6 @@ ipcMain.handle("get-synth-state", () => {
 })
 
 ipcMain.handle("synth", (event, state: any) => {
-  window?.webContents.send("synth", state)
   store.set("synth", state)
 })
 
@@ -119,41 +118,9 @@ ipcMain.handle("reset-effects", () => {
   window?.webContents.send("reset-effects")
 })
 
-ipcMain.handle("lowshelf", (event, state: any) => {
-  window?.webContents.send("lowshelf", state)
-})
-
-ipcMain.handle("highshelf", (event, state: any) => {
-  window?.webContents.send("highshelf", state)
-})
-
-ipcMain.handle("highpass", (event, state: any) => {
-  window?.webContents.send("highpass", state)
-})
-
-ipcMain.handle("lowpass", (event, state: any) => {
-  window?.webContents.send("lowpass", state)
-})
-
 ipcMain.handle("audio-filters", () => {
   window?.webContents.send("close-all-dialogs", "filters")
   window?.webContents.send("show-filters-dialog")
-})
-
-ipcMain.handle("phaser", (event, state: any) => {
-  window?.webContents.send("phaser", state)
-})
-
-ipcMain.handle("delay", (event, state: any) => {
-  window?.webContents.send("delay", state)
-})
-
-ipcMain.handle("reverb", (event, state: any) => {
-  window?.webContents.send("reverb", state)
-})
-
-ipcMain.handle("bitcrush", (event, state: any) => {
-  window?.webContents.send("bitcrush", state)
 })
 
 ipcMain.handle("audio-effects", () => {

@@ -28,7 +28,7 @@ const playbackSlice = createSlice({
         effects: [] as {type: string, node: Tone.ToneAudioNode}[],
         playHover: false,
         volumeHover: false,
-        sampleRate: 44100,
+        sampleRate: 100,
         reverbMix: 0,
         reverbDecay: 1.5,
         delayMix: 0,
@@ -49,6 +49,8 @@ const playbackSlice = createSlice({
         midiDuration: 0,
         bpm: 0,
         wave: "square",
+        basicWave: "square",
+        waveType: "basic",
         attack: 0.02,
         decay: 0.5,
         sustain: 0.3,
@@ -112,6 +114,8 @@ const playbackSlice = createSlice({
         setMidiDuration: (state, action) => {state.midiDuration = action.payload},
         setBpm: (state, action) => {state.bpm = action.payload},
         setWave: (state, action) => {state.wave = action.payload},
+        setBasicWave: (state, action) => {state.basicWave = action.payload},
+        setWaveType: (state, action) => {state.waveType = action.payload},
         setAttack: (state, action) => {state.attack = action.payload},
         setDecay: (state, action) => {state.decay = action.payload},
         setSustain: (state, action) => {state.sustain = action.payload},
@@ -147,7 +151,7 @@ const {
     setAttack, setDecay, setSustain, setRelease, setPoly, setPortamento,
     setMouseFlag, setSavedLoop, setPitchLFO, setPitchLFORate, setStepFlag,
     setSplitBands, setSplitBandFreq, setPreviousVolume, setPaused, setSeekTo,
-    setSecondsProgress, setProgress, setDragProgress, setDragging
+    setSecondsProgress, setProgress, setDragProgress, setDragging, setBasicWave, setWaveType
 } = playbackSlice.actions
 
 export const usePlaybackSelector = () => {
@@ -194,6 +198,8 @@ export const usePlaybackSelector = () => {
         midiDuration: selector((state) => state.playback.midiDuration),
         bpm: selector((state) => state.playback.bpm),
         wave: selector((state) => state.playback.wave),
+        basicWave: selector((state) => state.playback.basicWave),
+        waveType: selector((state) => state.playback.waveType),
         attack: selector((state) => state.playback.attack),
         decay: selector((state) => state.playback.decay),
         sustain: selector((state) => state.playback.sustain),
@@ -261,6 +267,8 @@ export const usePlaybackActions = () => {
         setMidiDuration: (state: number) => dispatch(setMidiDuration(state)),
         setBpm: (state: number) => dispatch(setBpm(state)),
         setWave: (state: string) => dispatch(setWave(state)),
+        setBasicWave: (state: string) => dispatch(setBasicWave(state)),
+        setWaveType: (state: string) => dispatch(setWaveType(state)),
         setAttack: (state: number) => dispatch(setAttack(state)),
         setDecay: (state: number) => dispatch(setDecay(state)),
         setSustain: (state: number) => dispatch(setSustain(state)),

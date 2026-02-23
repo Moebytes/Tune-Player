@@ -50,9 +50,6 @@
     color: var(--textColor);
     font-size: 20px;
     font-family: "GenEi M Gothic v2", sans-serif;
-    &::selection {
-        background-color: #ff6ea6;
-    }
 }
 
 .synth-row-container {
@@ -77,9 +74,6 @@
     color: var(--textColor);
     font-family: "GenEi M Gothic v2", sans-serif;
     font-size: 15px;
-    &::selection {
-        background-color: #ff6ea6;
-    }
 }
 
 .synth-slider {
@@ -90,13 +84,13 @@
 
 .synth-slider-track-1 {
     height: 0.4rem;
-    background-color: black;
+    background-color: var(--barColor);
     border-radius: 0.2;
 }
 
 .synth-slider-track-0 {
     height: 0.4rem;
-    background-color: #ff61b8;
+    background-color: var(--iconColor);
     border-radius: 0.2;
 }
 
@@ -131,6 +125,7 @@
 
 .synth-wave {
     width: 50px;
+    color: var(--iconColor);
 }
 
 .synth-wave-type {
