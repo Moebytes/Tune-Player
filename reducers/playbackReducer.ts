@@ -60,7 +60,7 @@ const playbackSlice = createSlice({
         savedLoop: [0, 100],
         pitchLFO: false,
         pitchLFORate: 1,
-        stepFlag: false,
+        stepFlag: true,
         splitBands: false,
         splitBandFreq: 500,
         previousVolume: 0,

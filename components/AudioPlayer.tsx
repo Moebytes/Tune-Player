@@ -295,8 +295,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
 
         const mouseDown = () => {
-            if (stepFlag) {
-                setStepFlag(false)
+            if (!stepFlag) {
+                setStepFlag(true)
             }
         }
 
@@ -363,10 +363,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (abloop) updateABLoop([loopStart, loopEnd])
     })
 
-    const saveState = () => {
+    useEffect(() => {
         window.ipcRenderer.invoke("save-state", {reverse, pitch, speed, preservesPitch, 
         pitchLFO, pitchLFORate, splitBands, splitBandFreq, loop, abloop, loopStart, loopEnd})
-    }
+    }, [reverse, pitch, speed, preservesPitch, pitchLFO, pitchLFORate, splitBands, splitBandFreq, 
+        loop, abloop, loopStart, loopEnd])
 
     const removeEffect = (type: string) => {
         const index = effects.findIndex((e) => e?.type === type)
@@ -568,7 +569,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             Tone.getTransport().loopEnd = currentDuration
         }
-        saveState()
     }
 
     useEffect(() => {
@@ -577,7 +577,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updatePreservesPitch = (value?: boolean) => {
         setPreservesPitch(value !== undefined ? value : !preservesPitch)
-        saveState()
     }
 
     const updatePitch = async (value?: number | string, applyState?: any) => {
@@ -589,7 +588,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             const pitchCorrect = preservesPitch ? 1 / speed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(currentPitch) * pitchCorrect
         }
-        saveState()
     }
 
     useEffect(() => {
@@ -598,7 +596,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updatePitchLFO = (value?: boolean) => {
         setPitchLFO(value !== undefined ? value : !pitchLFO)
-        saveState()
     }
 
     useEffect(() => {
@@ -610,7 +607,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         let currentLFORate = value !== undefined ? Number(value) : pitchLFORate
         lfoNode.parameters.get("lfoRate").value = currentLFORate
         lfoNode.port.postMessage({lfoShape: wave})
-        saveState()
     }
 
     useEffect(() => {
@@ -619,13 +615,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const pitchBands = (value?: boolean) => {
         setSplitBands(value !== undefined ? value : !splitBands)
-        saveState()
         applyEffects()
     }
 
     const pitchBandFreq = async (value?: number | string) => {
         setSplitBandFreq(value !== undefined ?  Number(value) : splitBandFreq)
-        saveState()
         clearTimeout(timer)
         timer = setTimeout(() => {
             applyEffects()
@@ -651,7 +645,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             currentPlayer.reverse = currentReverse
         }
         applyAB(duration)
-        saveState()
     }
 
     useEffect(() => {
@@ -704,7 +697,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSavedLoop([0, 100])
         setPitchLFO(false)
         setPitchLFORate(1)
-        setStepFlag(false)
+        setStepFlag(true)
         setSplitBands(false)
         setSplitBandFreq(500)
         setPreviousVolume(0)
@@ -731,7 +724,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setTimeout(() => {
             applyEffects()
         }, 100)
-        saveState()
     }
 
     const updateLoop = async (value?: boolean) => {
@@ -746,7 +738,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().loopStart = abloop ? (loopStart / 100) * duration : 0
             Tone.getTransport().loopEnd = abloop ? (loopEnd / 100) * duration : duration
         }
-        saveState()
     }
 
     const seek = (value: number) => {
@@ -969,7 +960,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (val > duration - 1) val = duration - 1
         Tone.getTransport().seconds = val
         if (midi) playMIDI()
-        saveState()
     }
 
     const toggleAB = (value?: boolean) => {
@@ -988,7 +978,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().loopStart = 0
             Tone.getTransport().loopEnd = duration
         }
-        saveState()
     }
 
     const applyState = useEffectEvent(async (localState: any, player: Tone.Player) => {
@@ -1536,7 +1525,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             </p>
                         </div>
                         <div className="volume-container">
-                            {volume <= 0.01 ?
+                            {muted || volume <= 0.01 ?
                             <VolumeMuteIcon className="player-button volume-button" onClick={() => mute()}/> : 
                             volume <= 0.5 ?
                             <VolumeLowIcon className="player-button volume-button" onClick={() => mute()}/> : 
@@ -1551,8 +1540,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             <div className="speed-popup">
                                 <div className="speed-popup-inner-container">
                                     <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} 
-                                    onChange={(value: number) => setSpeed(value)} min={0.5} max={4} step={0.5} value={speed}/>
-                                    <span className="speed-popup-text">{speed}x</span>
+                                    min={0.5} max={4} step={stepFlag ? 0.5 : 0.1} value={speed} onChange={(value: number) => setSpeed(value)}/>
+                                    <span className="speed-popup-text">{speed.toFixed(1)}x</span>
                                 </div>
                                 <div className="speed-popup-inner-container">
                                     <span className="speed-popup-text">Pitch?</span>
@@ -1569,7 +1558,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             <div className="pitch-popup">
                                 <div className="pitch-popup-inner-container">
                                     <Slider className="pitch-slider" trackClassName="pitch-slider-track" thumbClassName="pitch-slider-handle" ref={pitchBar} 
-                                    onChange={(value) => setPitch(value)} min={-24} max={24} step={12} value={pitch}/>
+                                    min={-24} max={24} step={stepFlag ? 12 : 1} value={pitch} onChange={(value: number) => setPitch(value)}/>
                                     <span className="pitch-popup-text">{pitch < 0 ? "" : "+"}{pitch}</span>
                                 </div>
 

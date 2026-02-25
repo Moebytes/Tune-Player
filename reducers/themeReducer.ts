@@ -14,23 +14,29 @@ const themeSlice = createSlice({
     name: "theme",
     initialState: {
         theme: "light" as Themes,
-        os: window.platform as OS
+        os: window.platform as OS,
+        transparent: false,
+        pinned: false
     },
     reducers: {
         setTheme: (state, action) => {state.theme = action.payload},
-        setOS: (state, action) => {state.os = action.payload}
+        setOS: (state, action) => {state.os = action.payload},
+        setTransparent: (state, action) => {state.transparent = action.payload},
+        setPinned: (state, action) => {state.pinned = action.payload}
     }    
 })
 
 const {
-    setTheme, setOS
+    setTheme, setOS, setTransparent, setPinned
 } = themeSlice.actions
 
 export const useThemeSelector = () => {
     const selector = useSelector.withTypes<StoreState>()
     return {
         theme: selector((state) => state.theme.theme),
-        os: selector((state) => state.theme.os)
+        os: selector((state) => state.theme.os),
+        transparent: selector((state) => state.theme.transparent),
+        pinned: selector((state) => state.theme.pinned)
     }
 }
 
@@ -38,7 +44,9 @@ export const useThemeActions = () => {
     const dispatch = useDispatch.withTypes<StoreDispatch>()()
     return {
         setTheme: (state: Themes) => dispatch(setTheme(state)),
-        setOS: (state: OS) => dispatch(setOS(state))
+        setOS: (state: OS) => dispatch(setOS(state)),
+        setTransparent: (state: boolean) => dispatch(setTransparent(state)),
+        setPinned: (state: boolean) => dispatch(setPinned(state))
     }
 }
 
