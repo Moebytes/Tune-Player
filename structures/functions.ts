@@ -183,4 +183,11 @@ export default class Functions {
             }
         })
     }
+
+    public static bufferToArraybuffer(buffer: Buffer) {
+        return buffer.buffer.slice(
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+        )
+    }
 }

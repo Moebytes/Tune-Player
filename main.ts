@@ -1,5 +1,7 @@
 import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell} from "electron"
 import dragAddon from "electron-click-drag-plugin"
+import util from "util"
+import child_process from "child_process"
 import Store from "electron-store"
 import path from "path"
 import process from "process"
@@ -10,8 +12,15 @@ import mainFunctions from "./structures/mainFunctions"
 import pack from "./package.json"
 import fs from "fs"
 
+const exec = util.promisify(child_process.exec)
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
+
+let ytdlPath = undefined as any
+if (process.platform === "darwin") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.app")
+if (process.platform === "win32") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.exe")
+if (process.platform === "linux") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp")
+if (!fs.existsSync(ytdlPath)) ytdlPath = undefined
 
 const store = new Store()
 let filePath = ""
@@ -231,8 +240,13 @@ ipcMain.handle("get-song", async (event, url: string) => {
     stream = await soundcloud.util.streamTrack(url)
     return functions.streamToBuffer(stream)
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-    const stream = await youtube.util.streamMP3(url)
-    return functions.streamToBuffer(stream)
+    const savePath = path.join(app.getAppPath(), `../assets/audio/${path.basename(url)}.mp3`)
+    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
+    const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
+    if (process.env.DEVELOPMENT === "true") console.log(str)
+    const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+    fs.unlinkSync(savePath)
+    return buffer
   } else if (url.includes("bandcamp.com")) {
     const {stream} = await getBandcampInfo(url)
     const buffer = await fetch(stream, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
@@ -414,6 +428,7 @@ if (!singleLock) {
     window.removeMenu()
     applicationMenu()
     openFile()
+    if (ytdlPath && process.platform === "darwin") fs.chmodSync(ytdlPath, "777")
     window.webContents.on("did-finish-load", () => {
       window?.show()
     })
