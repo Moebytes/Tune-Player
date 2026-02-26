@@ -152,6 +152,7 @@
     "bootstrap": "^5.3.8",
     "browser-id3-writer": "^6.3.1",
     "electron-click-drag-plugin": "^2.0.2",
+    "electron-localshortcut": "^3.2.1",
     "electron-store": "^8.0.0",
     "jsmediatags": "^3.9.7",
     "react": "^19.2.4",

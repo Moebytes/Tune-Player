@@ -1,4 +1,5 @@
 import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell} from "electron"
+import localShortcut from "electron-localshortcut"
 import dragAddon from "electron-click-drag-plugin"
 import util from "util"
 import child_process from "child_process"
@@ -126,7 +127,7 @@ ipcMain.handle("save-theme", (event, theme: string) => {
 })
 
 ipcMain.handle("get-os", () => {
-  return store.get("os", "mac")
+  return store.get("os", process.platform === "darwin" ? "mac" : "windows")
 })
 
 ipcMain.handle("save-os", (event, os: string) => {
@@ -429,13 +430,17 @@ if (!singleLock) {
   })
 
   app.on("ready", () => {
-    window = new BrowserWindow({width: 800, height: 680, minWidth: 720, minHeight: 450, frame: false, transparent: true,
-      show: false, hasShadow: false, backgroundColor: "#00000000", center: true, webPreferences: {
+    window = new BrowserWindow({width: 800, height: 680, minWidth: 720, minHeight: 450, frame: false, resizable: true, 
+      transparent: process.platform !== "win32", show: false, hasShadow: false, backgroundColor: "#00000000", 
+      center: true, webPreferences: {
       preload: path.join(__dirname, "../preload/index.js")}})
     window.loadFile(path.join(__dirname, "../renderer/index.html"))
     window.removeMenu()
     applicationMenu()
     openFile()
+    localShortcut.register(window, "Control+Shift+I", () => {
+      window?.webContents.openDevTools()
+    })
     if (ytdlPath && process.platform === "darwin") {
       fs.chmodSync(ytdlPath, "777")
       fs.chmodSync(ffmpegPath, "777")
