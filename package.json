@@ -36,6 +36,7 @@
       "category": "public.app-category.music",
       "extraFiles": [
         "ytdl/yt-dlp.app",
+        "ffmpeg/ffmpeg.app",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"
@@ -56,6 +57,7 @@
       },
       "extraFiles": [
         "ytdl/yt-dlp.exe",
+        "ffmpeg/ffmpeg.exe",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"
@@ -78,6 +80,7 @@
       "category": "Audio",
       "extraFiles": [
         "ytdl/yt-dlp",
+        "ffmpeg/ffmpeg",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"

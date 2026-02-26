@@ -22,6 +22,12 @@ if (process.platform === "win32") ytdlPath = path.join(app.getAppPath(), "../../
 if (process.platform === "linux") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp")
 if (!fs.existsSync(ytdlPath)) ytdlPath = undefined
 
+let ffmpegPath = undefined as any
+if (process.platform === "darwin") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.app")
+if (process.platform === "win32") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.exe")
+if (process.platform === "linux") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg")
+if (!fs.existsSync(ffmpegPath)) ffmpegPath = undefined
+
 const store = new Store()
 let filePath = ""
 
@@ -242,9 +248,8 @@ ipcMain.handle("get-song", async (event, url: string) => {
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
     const savePath = path.join(app.getAppPath(), `../assets/audio/${name}.mp3`)
-    let nodePath = process.platform === "win32" ? `C:\\Program Files\\nodejs\\node.exe` :
-      process.platform === "darwin" ? "/usr/local/bin/node" : "/usr/bin/node"
-    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" --js-runtimes node:"${nodePath}" -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
+    let runtimes = `--js-runtimes node:"${process.execPath}" --ffmpeg-location "${ffmpegPath}"`
+    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" ${runtimes} -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
     const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
     window?.webContents.send("debug", str)
     const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
@@ -431,7 +436,10 @@ if (!singleLock) {
     window.removeMenu()
     applicationMenu()
     openFile()
-    if (ytdlPath && process.platform === "darwin") fs.chmodSync(ytdlPath, "777")
+    if (ytdlPath && process.platform === "darwin") {
+      fs.chmodSync(ytdlPath, "777")
+      fs.chmodSync(ffmpegPath, "777")
+    }
     window.webContents.on("did-finish-load", () => {
       window?.show()
     })

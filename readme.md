@@ -28,10 +28,6 @@ A simple music player app.
 - Ctrl S: Download file
 - Drag and drop: Upload file
 
-### Youtube
-
-You must install Node.js to make Youtube links work we don't bundle it with the application. 
-
 ### Design
 
 Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0Kh/Tune-Player
