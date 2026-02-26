@@ -20,7 +20,7 @@ const RecentPlays: React.FunctionComponent = (props) => {
             recent = await window.ipcRenderer.invoke("get-recent")
             let newPages = [] as any
             let counter = 0;
-            while (counter < recent.length - 1) {
+            while (counter < recent.length) {
                 let newPage = [] as any
                 for (let i = 0; i < 8; i++) {
                     if (!recent[counter]) break
@@ -51,11 +51,6 @@ const RecentPlays: React.FunctionComponent = (props) => {
 
     const invokePlay = (info: any) => {
         window.ipcRenderer.invoke("invoke-play", info)
-    }
-
-    const checkYT = (info: any) => {
-        if (info.songUrl?.includes("youtube.com") || info.songUrl?.includes("youtu.be")) return true
-        return false
     }
 
     const generateJSX = () => {
