@@ -34,6 +34,7 @@ const App: React.FunctionComponent = () => {
           window.ipcRenderer.invoke("escape-pressed")
       }
     }
+    window.ipcRenderer.on("debug", console.log)
     document.addEventListener("keydown", keyDown)
     return () => {
       document.removeEventListener("keydown", keyDown)

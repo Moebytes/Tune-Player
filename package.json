@@ -4,7 +4,7 @@
   "description": "A simple music player",
   "main": "dist/main/index.js",
   "scripts": {
-    "start": "npm run clean && rsbuild build && cross-env DEVELOPMENT=true electron dist/main/index.js",
+    "start": "npm run clean && rsbuild build && electron dist/main/index.js",
     "build": "npm run clean ./build && rsbuild build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -p never",
     "clean": "del-cli ./dist"
   },

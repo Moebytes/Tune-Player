@@ -240,10 +240,11 @@ ipcMain.handle("get-song", async (event, url: string) => {
     stream = await soundcloud.util.streamTrack(url)
     return functions.streamToBuffer(stream)
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-    const savePath = path.join(app.getAppPath(), `../assets/audio/${path.basename(url)}.mp3`)
+    const name = await youtube.util.getTitle(url)
+    const savePath = path.join(app.getAppPath(), `../assets/audio/${name}.mp3`)
     let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
     const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
-    if (process.env.DEVELOPMENT === "true") console.log(str)
+    window?.webContents.send("debug", str)
     const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
     fs.unlinkSync(savePath)
     return buffer
