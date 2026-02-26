@@ -242,7 +242,7 @@ ipcMain.handle("get-song", async (event, url: string) => {
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
     const savePath = path.join(app.getAppPath(), `../assets/audio/${name}.mp3`)
-    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
+    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" --js-runtimes node -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
     const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
     window?.webContents.send("debug", str)
     const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
