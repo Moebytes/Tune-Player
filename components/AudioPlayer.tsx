@@ -199,10 +199,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 }
                 if (Tone.getTransport().seconds === Math.round(duration) - 1) Tone.getTransport().seconds = Math.round(duration)
             } else {
-                if (midi && Math.floor(Tone.getTransport().seconds) === 0) playMIDI()
-                if (Tone.getTransport().seconds > duration) {
-                    Tone.getTransport().seconds = 0
-                    if (midi) playMIDI()
+                if (midi && Math.floor(Tone.getTransport().seconds) < 0.05) {
+                    playMIDI()
                 }
             }
         }
@@ -340,6 +338,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (saved.reverse !== undefined) {
             setReverse(Boolean(saved.reverse))
         }
+        if (saved.volume !== undefined) {
+            setVolume(Number(saved.volume))
+            Tone.getDestination().volume.value = functions.logSlider(saved.volume)
+        }
         if (saved.loop !== undefined) {
             setLoop(Boolean(saved.loop))
         }
@@ -364,10 +366,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     })
 
     useEffect(() => {
-        window.ipcRenderer.invoke("save-state", {reverse, pitch, speed, preservesPitch, 
+        window.ipcRenderer.invoke("save-state", {reverse, pitch, speed, preservesPitch, volume,
         pitchLFO, pitchLFORate, splitBands, splitBandFreq, loop, abloop, loopStart, loopEnd})
     }, [reverse, pitch, speed, preservesPitch, pitchLFO, pitchLFORate, splitBands, splitBandFreq, 
-        loop, abloop, loopStart, loopEnd])
+        volume, loop, abloop, loopStart, loopEnd])
 
     const removeEffect = (type: string) => {
         const index = effects.findIndex((e) => e?.type === type)
@@ -388,16 +390,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setEffects(effects)
     }
     
-    const applyEffects = () => {
-        if (!soundtouchNode && !staticSoundtouchNode 
+    const applyEffects = useEffectEvent(() => {
+        if (!audioNode && !soundtouchNode && !staticSoundtouchNode 
         && !staticSoundtouchNode2 && !lfoNode) return
         player?.disconnect()
         soundtouchNode?.disconnect()
         staticSoundtouchNode?.disconnect()
         staticSoundtouchNode2?.disconnect()
-        lfoNode.disconnect()
+        lfoNode?.disconnect()
         if (synths.length) synths.forEach((s) => s?.disconnect())
-        const nodes = effects.map((e) => e?.node).filter(Boolean)
+        let nodes = effects.map((e) => e?.node)
+        nodes = (nodes ?? []).filter(Boolean)
         if (nodes[0]) nodes.forEach((n) => n?.disconnect())
         if (midi) {
             if (synths.length) synths.forEach((s) => s.chain(...[...nodes, Tone.getDestination()]))
@@ -460,23 +463,24 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 }
             }
         }
-    }
+    })
 
     const disposeSynths = useEffectEvent((synthArray?: any[]) => {
         let array = synthArray ? synthArray : synths
         while (array.length) {
             const synth = array.shift()
+            synth?.disconnect()
             synth?.dispose()
         }
     })
 
-    const switchState = useEffectEvent(() => {
+    const switchState = (midi: boolean) => {
         if (midi) {
             player.disconnect()
         } else {
             if (synths.length) disposeSynths()
         }
-    })
+    }
 
     const updateDuration = useEffectEvent(async (value?: number) => {
         if (!lfoNode) return
@@ -513,7 +517,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     })
 
     const stop = () => {
-        if (!checkBuffer()) return
         Tone.getTransport().stop()
     }
 
@@ -533,6 +536,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (value > 1) value = 1
         if (value < 0) value = 0
         setVolume(value)
+        setPreviousVolume(value)
         Tone.getDestination().volume.value = functions.logSlider(value)
         if (value <= 0.01) {
             Tone.getDestination().mute = true
@@ -545,6 +549,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updateSpeed = async (value?: number | string, applyState?: any) => {
         if (!soundtouchNode) return
+        Tone.getTransport().pause()
         let currentSpeed = value !== undefined ? Number(value) : speed
         let currentDuration = player.buffer.duration / currentSpeed
         if (midi) {
@@ -559,16 +564,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(pitch) * pitchCorrect
             let percent = Tone.getTransport().seconds / currentDuration
             setDuration(currentDuration)
-            let val = percent * currentDuration
-            if (val < 0) val = 0
-            if (val > currentDuration - 1) val = currentDuration - 1
-            Tone.getTransport().seconds = val
+            let newSeconds = percent * currentDuration
+            Tone.getTransport().seconds = Math.min(
+                Math.max(newSeconds, 0),
+                currentDuration - 0.001
+            )
         }
-        if (abloop) {
-            applyAB(currentDuration)
-        } else {
-            Tone.getTransport().loopEnd = currentDuration
-        }
+        Tone.getTransport().start()
     }
 
     useEffect(() => {
@@ -581,6 +583,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updatePitch = async (value?: number | string, applyState?: any) => {
         if (!soundtouchNode) return
+        Tone.getTransport().pause()
         let currentPitch = value !== undefined ? Number(value) : pitch
         if (midi) {
             if (!applyState) await playMIDI()
@@ -588,6 +591,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             const pitchCorrect = preservesPitch ? 1 / speed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(currentPitch) * pitchCorrect
         }
+        Tone.getTransport().start()
     }
 
     useEffect(() => {
@@ -628,6 +632,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const updateReverse = async (value?: boolean, applyState?: any) => {
+        Tone.getTransport().pause()
         let currentReverse = value !== undefined ? value : reverse
         let percent = Tone.getTransport().seconds / duration
         let val = (1-percent) * duration
@@ -644,7 +649,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (!applyState) Tone.getTransport().seconds = val
             currentPlayer.reverse = currentReverse
         }
-        applyAB(duration)
+        Tone.getTransport().start()
     }
 
     useEffect(() => {
@@ -657,6 +662,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setPitch(0)
         setSpeed(1)
         setVolume(1)
+        setPreviousVolume(1)
         setMuted(false)
         setABLoop(false)
         setLoopStart(0)
@@ -727,18 +733,18 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const updateLoop = async (value?: boolean) => {
-        let condition = value !== undefined ? value === false : loop === true
-        if (condition) {
-            setLoop(false)
-            Tone.getTransport().loop = false
-            if (abloop) toggleAB()
-        } else {
-            setLoop(true)
-            Tone.getTransport().loop = true
-            Tone.getTransport().loopStart = abloop ? (loopStart / 100) * duration : 0
-            Tone.getTransport().loopEnd = abloop ? (loopEnd / 100) * duration : duration
-        }
+        setLoop(value !== undefined ? value : !loop)
     }
+
+    useEffect(() => {
+        if (!duration) return
+        Tone.getTransport().loop = loop
+        if (!loop) return
+
+        Tone.getTransport().loopStart = abloop ? (loopStart / 100) * duration : 0
+        Tone.getTransport().loopEnd = abloop ? (loopEnd / 100) * duration : duration
+
+    }, [loop, abloop, loopStart, loopEnd, duration, midi, midiDuration, speed])
 
     const seek = (value: number) => {
         setDragging(false)
@@ -883,7 +889,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSongUrl("")
         setMidiFile(midiFile)
         updateRecentFiles(songName, file, midiPlaceholder, "", midi, totalDuration, bpm)
-        switchState()
+        switchState(true)
         stop()
         play(true)
     }
@@ -915,11 +921,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSongName(songName)
         setSong(file)
         setSongUrl("")
-        player.load(file)
-        await Tone.loaded()
+        await player.load(file)
         updateDuration()
         updateRecentFiles(songName, file, songCover, "", midi, midiDuration, bpm)
-        switchState()
+        switchState(false)
         stop()
         play(true)
         refreshState()
@@ -1306,7 +1311,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             await Tone.loaded()
             updateDuration()
             updateRecentFiles(songName, newSong, artwork, value, midi, midiDuration, bpm)
-            switchState()
+            applyEffects()
             stop()
             play(true)
             refreshState()
