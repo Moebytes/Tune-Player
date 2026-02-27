@@ -21,15 +21,18 @@ let ytdlPath = undefined as any
 if (process.platform === "darwin") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.app")
 if (process.platform === "win32") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.exe")
 if (process.platform === "linux") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp")
-if (!fs.existsSync(ytdlPath)) ytdlPath = undefined
+if (!fs.existsSync(ytdlPath)) ytdlPath = "./ytdl/yt-dlp.app"
+if (!fs.existsSync(ytdlPath)) ytdlPath = "yt-dlp"
 
 let ffmpegPath = undefined as any
 if (process.platform === "darwin") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.app")
 if (process.platform === "win32") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.exe")
 if (process.platform === "linux") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg")
-if (!fs.existsSync(ffmpegPath)) ffmpegPath = undefined
+if (!fs.existsSync(ffmpegPath)) ffmpegPath = "./ffmpeg/ffmpeg.app"
+if (!fs.existsSync(ffmpegPath)) ffmpegPath = "ffmpeg"
 
 const store = new Store()
+let initialTransparent = process.platform === "win32" ? store.get("transparent", false) : true
 let filePath = ""
 
 const youtube = new Youtube()
@@ -248,8 +251,8 @@ ipcMain.handle("get-song", async (event, url: string) => {
     return functions.streamToBuffer(stream)
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
-    const savePath = path.join(app.getAppPath(), `../assets/audio/${name}.mp3`)
-    let runtimes = `--js-runtimes node:"${process.execPath}" --ffmpeg-location "${ffmpegPath}"`
+    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
+    let runtimes = `--js-runtimes node:"${mainFunctions.getNodePath()}" --ffmpeg-location "${ffmpegPath}"`
     let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" ${runtimes} -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
     const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
     window?.webContents.send("debug", str)
@@ -431,7 +434,7 @@ if (!singleLock) {
 
   app.on("ready", () => {
     window = new BrowserWindow({width: 800, height: 680, minWidth: 720, minHeight: 450, frame: false, resizable: true, 
-      transparent: process.platform !== "win32", show: false, hasShadow: false, backgroundColor: "#00000000", 
+      transparent: initialTransparent, show: false, hasShadow: false, backgroundColor: "#00000000", 
       center: true, webPreferences: {
       preload: path.join(__dirname, "../preload/index.js")}})
     window.loadFile(path.join(__dirname, "../renderer/index.html"))
