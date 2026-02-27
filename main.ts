@@ -32,7 +32,7 @@ if (!fs.existsSync(ffmpegPath)) ffmpegPath = "./ffmpeg/ffmpeg.app"
 if (!fs.existsSync(ffmpegPath)) ffmpegPath = "ffmpeg"
 
 const store = new Store()
-let initialTransparent = process.platform === "win32" ? store.get("transparent", false) : true
+let initialTransparent = process.platform === "win32" ? store.get("transparent", false) as boolean : true
 let filePath = ""
 
 const youtube = new Youtube()
