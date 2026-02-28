@@ -529,7 +529,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             setMuted(true)
             Tone.getDestination().mute = true
-            Tone.getDestination().volume.value = functions.logSlider(0)
+            Tone.getDestination().volume.value = 0
             setVolume(0)
         }
     }
