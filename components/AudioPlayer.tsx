@@ -524,19 +524,21 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (muted) {
             setMuted(false)
             Tone.getDestination().mute = false
-            if (volume === 0) setVolume(1)
-            Tone.getDestination().volume.value = functions.logSlider(volume)
+            setVolume(previousVolume)
+            Tone.getDestination().volume.value = functions.logSlider(previousVolume)
         } else {
             setMuted(true)
             Tone.getDestination().mute = true
+            Tone.getDestination().volume.value = functions.logSlider(0)
+            setVolume(0)
         }
     }
 
     const updateVolume = (value: number) => {
         if (value > 1) value = 1
         if (value < 0) value = 0
+        setPreviousVolume(volume)
         setVolume(value)
-        setPreviousVolume(value)
         Tone.getDestination().volume.value = functions.logSlider(value)
         if (value <= 0.01) {
             Tone.getDestination().mute = true
@@ -706,7 +708,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setStepFlag(true)
         setSplitBands(false)
         setSplitBandFreq(500)
-        setPreviousVolume(0)
         setPaused(false)
         setSeekTo(null)
         setSecondsProgress(0)
@@ -888,7 +889,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSong(file)
         setSongUrl("")
         setMidiFile(midiFile)
-        updateRecentFiles(songName, file, midiPlaceholder, "", midi, totalDuration, bpm)
+        updateRecentFiles(songName, file, midiPlaceholder, "", true, totalDuration, bpm)
         switchState(true)
         stop()
         play(true)
@@ -923,7 +924,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setSongUrl("")
         await player.load(file)
         updateDuration()
-        updateRecentFiles(songName, file, songCover, "", midi, midiDuration, bpm)
+        updateRecentFiles(songName, file, songCover, "", false, midiDuration, bpm)
         switchState(false)
         stop()
         play(true)
@@ -1216,7 +1217,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     })
 
     const downloadSong = useEffectEvent(async () => {
-        if (!checkBuffer()) return
+        if (!song) return
         const defaultPath = `${functions.decodeEntities(songName)}${editCode}`
         const savePath = await window.ipcRenderer.invoke("save-dialog", defaultPath)
         if (!savePath) return
@@ -1310,8 +1311,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             player.load(newSong)
             await Tone.loaded()
             updateDuration()
-            updateRecentFiles(songName, newSong, artwork, value, midi, midiDuration, bpm)
-            applyEffects()
+            updateRecentFiles(songName, newSong, artwork, value, false, midiDuration, bpm)
+            switchState(false)
             stop()
             play(true)
             refreshState()

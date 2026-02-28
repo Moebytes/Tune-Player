@@ -214,7 +214,7 @@ ipcMain.handle("get-recent", () => {
 
 ipcMain.handle("update-recent", (event, info: SongItem) => {
   let recent = store.get("recent", []) as SongItem[]
-  while (recent.length > 160) recent.pop()
+  while (recent.length > 200) recent.pop()
   const dupe = functions.findDupe(recent, info)
   if (dupe !== -1) recent.splice(dupe, 1)
   recent.unshift(info)

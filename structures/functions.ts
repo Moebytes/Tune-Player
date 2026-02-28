@@ -24,15 +24,17 @@ export default class Functions {
     }
 
     public static findDupe = (recent: SongItem[], info: SongItem) => {
+        const targetName = info.songName?.trim().toLowerCase()
+        const targetDuration = Number(info.duration)
+
         for (let i = recent.length - 1; i >= 0; i--) {
-            if (recent[i].midi) {
-                if (recent[i].songName === info.songName
-                    && recent[i].duration === info.duration) return i
-            } else {
-                if (recent[i].songName === info.songName
-                    && recent[i].duration === info.duration) return i
-            }
+            const name = recent[i].songName?.trim().toLowerCase()
+            const duration = Number(recent[i].duration)
+
+            if (name === targetName &&
+                Math.abs(duration - targetDuration) < 0.5) return i
         }
+        
         return -1
     }
 
