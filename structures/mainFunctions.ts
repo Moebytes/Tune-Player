@@ -1,27 +1,40 @@
 import fs from "fs"
 import path from "path"
 import process from "process"
+import child_process from "child_process"
 
 const audioExtensions = [".mp3", ".wav", ".ogg", ".flac", ".aac", ".mid"]
 
 export default class MainFunctions {
-    public static removeDirectory = (dir: string) => {
-        if (!fs.existsSync(dir)) return
-        fs.readdirSync(dir).forEach((file: string) => {
-            const current = path.join(dir, file)
-            if (fs.lstatSync(current).isDirectory()) {
-                MainFunctions.removeDirectory(current)
-            } else {
-                fs.unlinkSync(current)
-            }
-        })
-        try {
-            fs.rmdirSync(dir)
-        } catch (e) {
-            console.log(e)
-        }
-    }
+    public static spawn = async (file: string, args: string[]): 
+        Promise<{stdout: string, stderr: string, code?: number}> => {
+            return new Promise((resolve, reject) => {
+                const child = child_process.spawn(file, args, {windowsHide: true})
 
+                let stdout = ""
+                let stderr = ""
+
+                child.stdout.on("data", (data) => {
+                    stdout += data.toString()
+                })
+
+                child.stderr.on("data", (data) => {
+                    stderr += data.toString()
+                })
+
+                child.on("error", (err) => {
+                    reject(err)
+                })
+
+                child.on("close", (code) => {
+                    if (code === 0) {
+                        resolve({stdout, stderr})
+                    } else {
+                        reject({stdout, stderr, code})
+                    }
+                })
+        })
+    }
     
     public static getSortedFiles = async (dir: string) => {
         const files = await fs.promises.readdir(dir)
@@ -56,6 +69,23 @@ export default class MainFunctions {
                 "/usr/local/bin/node"
             ]
             return linuxPaths.find(exists) ?? "node"
+        }
+    }
+
+    public static removeDirectory = (dir: string) => {
+        if (!fs.existsSync(dir)) return
+        fs.readdirSync(dir).forEach((file: string) => {
+            const current = path.join(dir, file)
+            if (fs.lstatSync(current).isDirectory()) {
+                MainFunctions.removeDirectory(current)
+            } else {
+                fs.unlinkSync(current)
+            }
+        })
+        try {
+            fs.rmdirSync(dir)
+        } catch (e) {
+            console.log(e)
         }
     }
 }

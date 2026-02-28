@@ -2,7 +2,6 @@ import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, s
 import localShortcut from "electron-localshortcut"
 import dragAddon from "electron-click-drag-plugin"
 import util from "util"
-import child_process from "child_process"
 import Store from "electron-store"
 import path from "path"
 import process from "process"
@@ -13,7 +12,6 @@ import mainFunctions from "./structures/mainFunctions"
 import pack from "./package.json"
 import fs from "fs"
 
-const exec = util.promisify(child_process.exec)
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
 
@@ -252,10 +250,14 @@ ipcMain.handle("get-song", async (event, url: string) => {
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
     const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
-    let runtimes = `--js-runtimes node:"${mainFunctions.getNodePath()}" --ffmpeg-location "${ffmpegPath}"`
-    let command = `"${ytdlPath ? ytdlPath : "yt-dlp"}" ${runtimes} -t mp3 "${functions.escapeQuotes(url)}" -o "${savePath}"`
-    const str = await exec(command).then((s: any) => s.stdout).catch((e: any) => e.stderr)
+
+    let args = [
+      `--js-runtimes node:"${mainFunctions.getNodePath()}"`, `--ffmpeg-location "${ffmpegPath}"`,
+      "-t", "mp3", url, "-o", savePath
+    ]
+    const str = await mainFunctions.spawn(ytdlPath ?? "yt-dlp", args).then((s: any) => s.stdout).catch((e: any) => e.stderr)
     window?.webContents.send("debug", str)
+    
     const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
     fs.unlinkSync(savePath)
     return buffer
