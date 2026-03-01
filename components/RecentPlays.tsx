@@ -11,8 +11,6 @@ let pages = [] as SongItem[][]
 const RecentPlays: React.FunctionComponent = (props) => {
     const [ignored, forceUpdate] = useReducer(x => x + 1, 0)
     const [pageIndex, setPageIndex] = useState(0)
-    const [pageLeftHover, setPageLeftHover] = useState(false)
-    const [pageRightHover, setPageRightHover] = useState(false)
     const [deleteQueue, setDeleteQueue] = useState({})
 
     useEffect(() => {
@@ -41,7 +39,10 @@ const RecentPlays: React.FunctionComponent = (props) => {
 
     useEffect(() => {
         const triggerRemove = async () => {
-            window.ipcRenderer.invoke("remove-recent", deleteQueue)
+            if (Object.keys(deleteQueue).length) {
+                window.ipcRenderer.invoke("remove-recent", deleteQueue)
+                setDeleteQueue({})
+            }
         }
         window.ipcRenderer.on("trigger-remove", triggerRemove)
         return () => {
@@ -62,7 +63,7 @@ const RecentPlays: React.FunctionComponent = (props) => {
                 row1.push(<img className="recent-square" src={square}/>)
             } else {
                 row1.push(
-                    <div className="recent-song-item">
+                    <div className="recent-song-item" data-song={item.song}>
                         <img className="recent-img" onClick={() => invokePlay(item)} src={item.songCover} 
                         onContextMenu={() => setDeleteQueue(item)}/>
                         <div className="recent-song-text-container">
@@ -77,7 +78,7 @@ const RecentPlays: React.FunctionComponent = (props) => {
                 row2.push(<img className="recent-square" src={square}/>)
             } else {
                 row2.push(
-                <div className="recent-song-item">
+                <div className="recent-song-item" data-song={item.song}>
                     <img className="recent-img" onClick={() => invokePlay(item)} src={item.songCover} 
                     onContextMenu={() => setDeleteQueue(item)}/>
                     <div className="recent-song-text-container">

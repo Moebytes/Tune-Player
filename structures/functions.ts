@@ -1,4 +1,5 @@
 import {guess} from "web-audio-beat-detector"
+import {ID3Writer} from "browser-id3-writer"
 import path from "path"
 
 export interface SongItem {
@@ -186,10 +187,35 @@ export default class Functions {
         })
     }
 
-    public static bufferToArraybuffer(buffer: Buffer) {
+    public static bufferToArraybuffer = (buffer: Buffer) => {
         return buffer.buffer.slice(
             buffer.byteOffset,
             buffer.byteOffset + buffer.byteLength
         )
+    }
+
+    public static appendMP3Cover = async (mp3: ArrayBuffer, image: string, name: string, duration: number) => {
+        const imageBuffer = await fetch(image).then((r) => r.arrayBuffer())
+        const writer = new ID3Writer(mp3)
+        writer.setFrame("TIT2", name)
+        .setFrame("TLEN", duration)
+        .setFrame("APIC" as any, {type: 3, data: imageBuffer, description: "Song Cover", useUnicodeEncoding: false} as any)
+        writer.addTag()
+        return fetch(writer.getURL()).then((r) => r.arrayBuffer())
+    }
+
+    public static songAtCursor = (coords: {x: number, y: number}) => {
+        const images = document.querySelectorAll(".recent-song-item") as NodeListOf<HTMLDivElement>
+        let found = null as any
+        images.forEach((i) => {
+            const rect = i.getBoundingClientRect()
+            if (coords.x > rect.left && 
+                coords.x < rect.right && 
+                coords.y > rect.top && 
+                coords.y < rect.bottom) {
+                found = i
+            }
+        })
+        return found ? found.dataset.song : null
     }
 }

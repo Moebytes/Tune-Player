@@ -4,7 +4,6 @@ import path from "path"
 import Slider from "react-slider"
 import * as Tone from "tone"
 import {Midi} from "@tonejs/midi"
-import {ID3Writer} from "browser-id3-writer"
 import jsmediatags from "jsmediatags"
 import functions from "../structures/functions"
 import PlayIcon from "../assets/svg/play.svg"
@@ -140,7 +139,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         }
         const invokePlay = (event: any, info: any) => {
             if (info.songUrl) {
-                submit(info.songUrl)
+                try {
+                    upload(info.song)
+                } catch {
+                    submit(info.songUrl)
+                }
             } else {
                 upload(info.song)
             }
@@ -158,10 +161,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             setDragging(false)
             setABDragging(false)
         }
+        const openLocation = (event: any, coords: {x: number, y: number}) => {
+            const song = functions.songAtCursor(coords)
+            if (!song) return
+            window.shell.showItemInFolder(song)
+        }
         initState()
         abSlider.current.slider.style.display = "none"
         window.addEventListener("mouseup", onWindowMouseUp)
         window.ipcRenderer.on("open-file", openFile)
+        window.ipcRenderer.on("open-location", openLocation)
         window.ipcRenderer.on("invoke-play", invokePlay)
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
@@ -169,6 +178,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         return () => {
             window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
+            window.ipcRenderer.removeListener("open-location", openLocation)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
@@ -1271,47 +1281,38 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (path.extname(savePath) === ".mp3") {
                 audioEncoder(audioBuffer.get(), 320, null, async (blob: Blob) => {
                     let mp3 = await blob.arrayBuffer() as any
-                    if (songCover) {
-                        const imageBuffer = await fetch(songCover).then((r) => r.arrayBuffer())
-                        const writer = new ID3Writer(mp3)
-                        writer.setFrame("TIT2", songName)
-                        .setFrame("TLEN", currentDuration)
-                        .setFrame("APIC" as any, {type: 3, data: imageBuffer, description: "Song Cover", useUnicodeEncoding: false} as any)
-                        writer.addTag()
-                        mp3 = await fetch(writer.getURL()).then((r) => r.arrayBuffer())
-                    }
+                    if (songCover) mp3 = await functions.appendMP3Cover(mp3, songCover, songName, currentDuration)
                     await window.ipcRenderer.invoke("save-file", savePath, Buffer.from(mp3, "binary"))
-                    window.ipcRenderer.invoke("show-in-folder", savePath)
+                    window.shell.showItemInFolder(savePath)
                 })
             } else {
                 audioEncoder(audioBuffer.get(), null, null, async (blob: Blob) => {
                     const wav = await blob.arrayBuffer() as any
                     await window.ipcRenderer.invoke("save-file", savePath, Buffer.from(wav, "binary"))
-                    window.ipcRenderer.invoke("show-in-folder", savePath)
+                    window.shell.showItemInFolder(savePath)
                 })
             }
         }
     })
 
-    const submit = useEffectEvent(async (value?: string) => {
-        if (!value) return
-        const songBuffer = await window.ipcRenderer.invoke("get-song", value)
-        if (songBuffer) {
+    const submit = useEffectEvent(async (url?: string) => {
+        if (!url) return
+        const {buffer, file} = await window.ipcRenderer.invoke("get-song", url)
+        if (buffer) {
             setMidi(false)
-            const songName = await window.ipcRenderer.invoke("get-song-name", value)
-            let artwork = await window.ipcRenderer.invoke("get-art", value)
+            const songName = await window.ipcRenderer.invoke("get-song-name", url)
+            let artwork = await window.ipcRenderer.invoke("get-art", url)
             if (artwork.includes("ytimg")) artwork = await functions.cropToCenterSquare(artwork)
-            window.URL.revokeObjectURL(song)
-            const blob = new Blob([new DataView(songBuffer)], {type: "audio/mpeg"})
-            let newSong = window.URL.createObjectURL(blob)
             setSongName(songName)
-            setSong(newSong)
+            setSong(file)
             setSongCover(artwork)
-            setSongUrl(value)
-            player.load(newSong)
+            setSongUrl(url)
+            player.load(file)
             await Tone.loaded()
+            let updatedBuffer = await functions.appendMP3Cover(buffer, artwork, songName, player.buffer.duration)
+            window.ipcRenderer.invoke("append-song-cover", file, updatedBuffer)
             updateDuration()
-            updateRecentFiles(songName, newSong, artwork, value, false, midiDuration, bpm)
+            updateRecentFiles(songName, file, artwork, url, false, midiDuration, bpm)
             switchState(false)
             stop()
             play(true)

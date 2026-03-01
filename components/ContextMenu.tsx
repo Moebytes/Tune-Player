@@ -6,7 +6,9 @@ const ContextMenu: React.FunctionComponent = (props) => {
             event.preventDefault()
             const selectedText = window.getSelection()?.toString().trim()
             window.ipcRenderer.invoke("context-menu", {
-                hasSelection: Boolean(selectedText)
+                hasSelection: Boolean(selectedText),
+                x: event.pageX,
+                y: event.pageY
             })
         }
     }, [])

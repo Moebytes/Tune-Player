@@ -1,4 +1,4 @@
-import {contextBridge, ipcRenderer, clipboard, IpcRendererEvent} from "electron"
+import {contextBridge, ipcRenderer, IpcRendererEvent} from "electron"
 
 declare global {
   interface Window {
@@ -8,7 +8,10 @@ declare global {
       send: (channel: string, ...args: any[]) => void
       on: (channel: string, listener: (...args: any[]) => void) => any
       removeListener: (channel: string, listener: (...args: any[]) => void) => void
-    }
+    },
+    shell: {
+      showItemInFolder: (path: string) => Promise<void>
+    },
   }
 }
 
@@ -29,6 +32,10 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
     removeListener: (channel: string, listener: (...args: any[]) => void) => {
         ipcRenderer.removeListener(channel, listener)
     }
+})
+
+contextBridge.exposeInMainWorld("shell", {
+    showItemInFolder: async (location: string) => ipcRenderer.invoke("shell:showItemInFolder", location)
 })
 
 contextBridge.exposeInMainWorld("platform", process.platform === "darwin" ? "mac" : "windows")

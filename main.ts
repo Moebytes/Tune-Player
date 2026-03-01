@@ -1,7 +1,6 @@
 import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell} from "electron"
 import localShortcut from "electron-localshortcut"
 import dragAddon from "electron-click-drag-plugin"
-import util from "util"
 import Store from "electron-store"
 import path from "path"
 import process from "process"
@@ -11,6 +10,7 @@ import functions, {SongItem} from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
 import pack from "./package.json"
 import fs from "fs"
+import { buffer } from "stream/consumers"
 
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
@@ -69,8 +69,8 @@ ipcMain.on("moveWindow", (event) => {
   dragAddon.startDrag(windowID)
 })
 
-ipcMain.handle("show-in-folder", async (event, savePath: string) => {
-  shell.showItemInFolder(path.normalize(savePath))
+ipcMain.handle("shell:showItemInFolder", (event, location: string) => {
+  shell.showItemInFolder(path.normalize(location))
 })
 
 ipcMain.handle("save-file", async (event, filePath: string, buffer: Buffer) => {
@@ -232,6 +232,10 @@ ipcMain.handle("invoke-play", (event, info: SongItem) => {
   window?.webContents.send("invoke-play", info)
 })
 
+ipcMain.handle("append-song-cover", async (event, filePath: string, arrayBuffer: ArrayBuffer) => {
+  fs.writeFileSync(filePath, Buffer.from(arrayBuffer))
+})
+
 const getBandcampInfo = async (trackUrl: string) => {
   const html = await fetch(trackUrl, {headers: {"user-agent": userAgent}}).then((r) => r.text())
   const image = html.match(/(?<=image_src" href=")(.*?)(?=")/)?.[0] || ""
@@ -243,28 +247,50 @@ const getBandcampInfo = async (trackUrl: string) => {
 }
 
 ipcMain.handle("get-song", async (event, url: string) => {
-  let stream = null as unknown as NodeJS.ReadableStream
+  const audioDest = path.join(app.getPath("documents"), "Tune Player/audio")
+  if (!fs.existsSync(audioDest)) fs.mkdirSync(audioDest, {recursive: true})
+
   if (url.includes("soundcloud.com")) {
-    stream = await soundcloud.util.streamTrack(url)
-    return functions.streamToBuffer(stream)
+    const name = await soundcloud.util.getTitle(url)
+    const savePath = path.join(audioDest, `${name}.mp3`)
+    if (fs.existsSync(savePath)) {
+      let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+      return {buffer, file: savePath}
+    }
+
+    await soundcloud.util.downloadTrack(url, savePath, true)
+      let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+    return {buffer, file: savePath}
+
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
-    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
+    const savePath = path.join(audioDest, `${name}.mp3`)
+    if (fs.existsSync(savePath)) {
+      let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+      return {buffer, file: savePath}
+    }
 
     let args = [
-      `--js-runtimes node:"${mainFunctions.getNodePath()}"`, `--ffmpeg-location "${ffmpegPath}"`,
+      "--js-runtimes", `node:${mainFunctions.getNodePath()}`, "--ffmpeg-location", ffmpegPath ?? "ffmpeg",
       "-t", "mp3", url, "-o", savePath
     ]
     const str = await mainFunctions.spawn(ytdlPath ?? "yt-dlp", args).then((s: any) => s.stdout).catch((e: any) => e.stderr)
     window?.webContents.send("debug", str)
-    
-    const buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
-    fs.unlinkSync(savePath)
-    return buffer
+
+    let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+    return {buffer, file: savePath}
+
   } else if (url.includes("bandcamp.com")) {
-    const {stream} = await getBandcampInfo(url)
+    const {title: name, stream} = await getBandcampInfo(url)
+    const savePath = path.join(audioDest, `${name}.mp3`)
+    if (fs.existsSync(savePath)) {
+      let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
+      return {buffer, file: savePath}
+    }
+
     const buffer = await fetch(stream, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
-    return buffer
+    fs.writeFileSync(savePath, Buffer.from(buffer))
+    return {buffer, file: savePath}
   }
 })
 
@@ -358,15 +384,21 @@ app.on("open-file", (event, file) => {
   window?.webContents.send("open-file", file)
 })
 
-ipcMain.handle("context-menu", (event, {hasSelection}) => {
+ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
   const template: MenuItemConstructorOptions[] = [
     {label: "Copy", enabled: hasSelection, role: "copy"},
     {label: "Paste", role: "paste"},
     {type: "separator"},
     {label: "Remove Track", click: () => event.sender.send("trigger-remove")},
+    {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
-    {label: "Paste Loop", click: () => event.sender.send("paste-loop")}
+    {label: "Paste Loop", click: () => event.sender.send("paste-loop")},
+    {type: "separator"},
+    {label: "Clear Audio Cache", click: () => {
+      const audioPath = path.join(app.getPath("documents"), `Tune Player/audio`)
+      mainFunctions.removeDirectory(audioPath)
+    }}
   ]
 
   const menu = Menu.buildFromTemplate(template)
@@ -439,8 +471,8 @@ if (!singleLock) {
       transparent: initialTransparent, show: false, hasShadow: false, backgroundColor: "#00000000", 
       center: true, webPreferences: {
       preload: path.join(__dirname, "../preload/index.js")}})
-    window.loadFile(path.join(__dirname, "../renderer/index.html"))
-    window.removeMenu()
+    window?.loadFile(path.join(__dirname, "../renderer/index.html"))
+    window?.removeMenu()
     applicationMenu()
     openFile()
     localShortcut.register(window, "Control+Shift+I", () => {
@@ -450,10 +482,10 @@ if (!singleLock) {
       fs.chmodSync(ytdlPath, "777")
       fs.chmodSync(ffmpegPath, "777")
     }
-    window.webContents.on("did-finish-load", () => {
+    window?.webContents.on("did-finish-load", () => {
       window?.show()
     })
-    window.on("closed", () => {
+    window?.on("closed", () => {
       window = null
     })
   })
