@@ -1,3 +1,9 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Tune Player - A cute music player ❤                       *
+ * Copyright © 2026 Moebytes <moebytes.com>                  *
+ * Licensed under CC BY-NC 4.0. See license.txt for details. *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 import React, {useEffect, useReducer, useState} from "react"
 import square from "../assets/images/square.png"
 import LeftArrowIcon from "../assets/svg/left-arrow.svg"

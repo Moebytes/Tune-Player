@@ -1,3 +1,9 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Tune Player - A cute music player ❤                       *
+ * Copyright © 2026 Moebytes <moebytes.com>                  *
+ * Licensed under CC BY-NC 4.0. See license.txt for details. *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 import {app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain, shell} from "electron"
 import localShortcut from "electron-localshortcut"
 import dragAddon from "electron-click-drag-plugin"
@@ -10,7 +16,6 @@ import functions, {SongItem} from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
 import pack from "./package.json"
 import fs from "fs"
-import { buffer } from "stream/consumers"
 
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
