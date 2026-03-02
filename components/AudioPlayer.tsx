@@ -172,11 +172,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (!song) return
             window.shell.showItemInFolder(song)
         }
+        const showInfoDialog = (event: any, coords: {x: number, y: number}) => {
+            const song = functions.songAtCursor(coords)
+            if (!song) return
+            window.ipcRenderer.invoke("show-info-dialog", song)
+        }
         initState()
         abSlider.current.slider.style.display = "none"
         window.addEventListener("mouseup", onWindowMouseUp)
         window.ipcRenderer.on("open-file", openFile)
         window.ipcRenderer.on("open-location", openLocation)
+        window.ipcRenderer.on("show-info-dialog", showInfoDialog)
         window.ipcRenderer.on("invoke-play", invokePlay)
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
@@ -185,6 +191,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("open-location", openLocation)
+            window.ipcRenderer.removeListener("show-info-dialog", showInfoDialog)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)

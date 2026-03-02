@@ -14,6 +14,7 @@ import Youtube from "youtube.ts"
 import Soundcloud from "soundcloud.ts"
 import functions, {SongItem} from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
+import * as mm from "music-metadata"
 import pack from "./package.json"
 import fs from "fs"
 
@@ -326,6 +327,32 @@ ipcMain.handle("get-art", async (event, url: string) => {
   return picture
 })
 
+ipcMain.handle("show-info-dialog", async (event, songFile: string) => {
+  const metadata = await mm.parseFile(songFile)
+
+  const detail = [
+    `Name: ${path.basename(songFile)}`,
+    `Duration: ${functions.formatSeconds(Number(metadata.format.duration))}`,
+    `Size: ${functions.readableFileSize(fs.lstatSync(songFile).size)}`,
+    `Container: ${metadata.format.container}`,
+    `Sample Rate: ${metadata.format.sampleRate}`,
+    `Samples: ${metadata.format.numberOfSamples ?? "?"}`,
+    `Bit Rate: ${functions.formatBitrate(Number(metadata.format.bitrate))}`,
+    `Bit Depth: ${metadata.format.bitsPerSample ?? "?"}`,
+    `Channels: ${metadata.format.numberOfChannels}`,
+    `Lossless: ${metadata.format.lossless ? "Yes" : "No"}`
+  ].join("\n")
+
+  await dialog.showMessageBox(window!, {
+    type: "info",
+    title: "Audio Info",
+    message: "Audio Info",
+    detail,
+    buttons: ["Ok"],
+    noLink: true
+  })
+})
+
 ipcMain.handle("save-dialog", async (event, defaultPath: string) => {
   if (!window) return
   const save = await dialog.showSaveDialog(window, {
@@ -415,9 +442,10 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
     {label: "Copy", enabled: hasSelection, role: "copy"},
     {label: "Paste", role: "paste"},
     {type: "separator"},
+    {label: "Get Info", click: () => event.sender.send("show-info-dialog", {x, y})},
     {label: "Remove Track", click: () => event.sender.send("trigger-remove")},
-    {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
     {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()},
+    {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
     {label: "Paste Loop", click: () => event.sender.send("paste-loop")},

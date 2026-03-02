@@ -155,6 +155,7 @@
     "electron-localshortcut": "^3.2.1",
     "electron-store": "^8.0.0",
     "jsmediatags": "^3.9.7",
+    "music-metadata": "^11.12.1",
     "react": "^19.2.4",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.4",
