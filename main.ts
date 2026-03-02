@@ -36,6 +36,7 @@ if (!fs.existsSync(ffmpegPath)) ffmpegPath = "ffmpeg"
 
 const store = new Store()
 let initialTransparent = process.platform === "win32" ? store.get("transparent", false) as boolean : true
+let windowOpacity = store.get("window-opacity", 100) as number
 let filePath = ""
 
 const youtube = new Youtube()
@@ -389,6 +390,26 @@ app.on("open-file", (event, file) => {
   window?.webContents.send("open-file", file)
 })
 
+const setWindowOpacity = (percent: number) => {
+  windowOpacity = Math.max(10, Math.min(100, percent))
+  store.set("window-opacity", windowOpacity)
+
+  window?.setOpacity(windowOpacity / 100)
+
+  applicationMenu()
+}
+
+const opacitySubmenu = (): MenuItemConstructorOptions[] => {
+  const values = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+
+  return values.map(value => ({
+    label: `${value}%`,
+    type: "radio",
+    checked: windowOpacity === value,
+    click: () => setWindowOpacity(value)
+  }))
+}
+
 ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
   const template: MenuItemConstructorOptions[] = [
     {label: "Copy", enabled: hasSelection, role: "copy"},
@@ -396,6 +417,7 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
     {type: "separator"},
     {label: "Remove Track", click: () => event.sender.send("trigger-remove")},
     {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
+    {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
     {label: "Paste Loop", click: () => event.sender.send("paste-loop")},
@@ -442,6 +464,12 @@ const applicationMenu = () =>  {
         {role: "paste"}
       ]
     },
+    {
+      label: "View",
+      submenu: [
+        {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()}
+      ]
+    },
     {role: "windowMenu"},
     {
       role: "help",
@@ -478,6 +506,7 @@ if (!singleLock) {
       preload: path.join(__dirname, "../preload/index.js")}})
     window?.loadFile(path.join(__dirname, "../renderer/index.html"))
     window?.removeMenu()
+    window.setOpacity(windowOpacity / 100)
     applicationMenu()
     openFile()
     localShortcut.register(window, "Control+Shift+I", () => {
