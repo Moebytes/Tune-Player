@@ -1610,10 +1610,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                         </div>
                         <div className="progress-container">
                             <Slider className="progress-slider" trackClassName="progress-slider-track" thumbClassName="progress-slider-handle"
-                            ref={progressBar} min={0} max={100} onBeforeChange={() => setDragging(true)} onChange={(value: number) => updateProgressText(value)} 
+                            ref={progressBar} min={0} max={100} step={0.01} onBeforeChange={() => setDragging(true)} onChange={(value: number) => updateProgressText(value)} 
                             onAfterChange={(value: number) => seek(value)} value={dragging && !abDragging ? ((dragProgress || 0) / duration) * 100 : progress}/>
 
-                            <Slider className="ab-slider" trackClassName="ab-slider-track" thumbClassName="ab-slider-thumb" ref={abSlider} min={0} max={100} 
+                            <Slider className="ab-slider" trackClassName="ab-slider-track" thumbClassName="ab-slider-thumb" ref={abSlider} min={0} max={100} step={0.01}
                             value={[loopStart, loopEnd]} onBeforeChange={() => {setDragging(true); setABDragging(true)}} onChange={(value: number[]) => updateProgressTextAB(value)} 
                             onAfterChange={(value: number[]) => updateABLoop(value)} pearling minDistance={1}/>
                         </div>
