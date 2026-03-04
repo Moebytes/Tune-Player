@@ -51,10 +51,16 @@
       }
     },
     "win": {
-      "target": {
-        "target": "nsis",
-        "arch": "x64"
-      },
+      "target": [
+        {
+          "target": "nsis",
+          "arch": "x64"
+        },
+        {
+          "target": "msix",
+          "arch": "x64"
+        }
+      ],
       "extraFiles": [
         "ytdl/yt-dlp.exe",
         "ffmpeg/ffmpeg.exe",
@@ -71,6 +77,12 @@
       "createDesktopShortcut": "always",
       "installerSidebar": "./assets/installer.bmp",
       "uninstallerSidebar": "./assets/installer.bmp"
+    },
+    "msix": {
+      "identityName": "Moebytes.TunePlayer",
+      "publisher": "CN=4C1B763B-CF01-4978-8749-986F562173D8",
+      "publisherDisplayName": "Moebytes",
+      "allowExecution": true
     },
     "linux": {
       "target": {
