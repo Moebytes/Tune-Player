@@ -1,7 +1,7 @@
 {
   "name": "tune-player",
   "version": "1.0.0",
-  "description": "A simple music player",
+  "description": "A cute music player!",
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run clean && rsbuild build && electron dist/main/index.js",

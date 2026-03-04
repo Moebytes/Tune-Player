@@ -2,19 +2,18 @@
    
 <img src="assets/images/readme.png">
 
-A simple music player app.
+A cute music player!
 
 ### Features:
-- Play audio (MP3, WAV) and MIDI files
-- Adjust the volume of the audio
-- Reverse audio in real-time
-- Time stretching in real-time (can either preserve or affect the pitch)
-- Pitch shifting in real-time (only if time-stretch is set to not affect the pitch)
+- Play audio (MP3, WAV, OGG, FLAC) and MIDI files
+- Reverse playback
+- Speed adjustment (can either preserve or affect the pitch)
+- Pitch shifting (and LFO pitch effect)
 - Looping from point A to point B
-- Support for local files, YouTube videos, and Soundcloud tracks
+- Audio filters and effects (lowpass, highpass, reverb, delay, bitcrush)
+- Support for YouTube videos, Soundcloud tracks, and Bandcamp tracks
 - Render and download audio/midi with effects
-- Keeps a record of recent plays
-- Play previous and next tracks (from your file system)
+- Stores your recent plays for easy access
 - Customize the controls of the MIDI synthesizer
 
 ### Keyboard Shortcuts

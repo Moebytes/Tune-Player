@@ -22,8 +22,9 @@ import "./index.less"
 
 const App: React.FunctionComponent = () => {
   const onDrop = (event: React.DragEvent) => {
-      const file = event.dataTransfer?.files[0] as File & {path: string}
-      if (file) window.ipcRenderer.invoke("upload-file", file.path)
+      event.preventDefault()
+      const file = window.webUtils.getPathForFile(event.dataTransfer?.files[0])
+      if (file) window.ipcRenderer.invoke("upload-file", file)
   }
 
   const onDragOver = (event: React.DragEvent) => {

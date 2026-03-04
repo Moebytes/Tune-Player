@@ -32,7 +32,6 @@ import midiPlaceholder from "../assets/images/midi-placeholder.png"
 import silence from "../assets/silence.mp3"
 import audioEncoder from "audio-encoder"
 import "./styles/audioplayer.less"
-import { buffer } from "stream/consumers"
 
 let timer = null as any
 let player: Tone.Player
@@ -47,6 +46,13 @@ let soundtouchURL = ""
 let lfoNode: any
 let lfoURL = ""
 let bitcrusherNode: any
+let reverbNode: Tone.Reverb
+let delayNode: Tone.PingPongDelay
+let phaserNode: Tone.Phaser
+let lowpassNode: Tone.Filter
+let highpassNode: Tone.Filter
+let lowshelfNode: Tone.Filter
+let highshelfNode: Tone.Filter
 
 const initialize = async () => {
     player = new Tone.Player(silence).sync().start()
@@ -163,6 +169,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const triggerSearch = (event: any, query: string) => {
             submit(query)
         }
+        const triggerPlay = () => {
+            play()
+        }
         const onWindowMouseUp = (event: any) => {
             setDragging(false)
             setABDragging(false)
@@ -187,6 +196,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.ipcRenderer.on("trigger-open", triggerOpen)
         window.ipcRenderer.on("trigger-save", triggerSave)
         window.ipcRenderer.on("trigger-search", triggerSearch)
+        window.ipcRenderer.on("trigger-play", triggerPlay)
         return () => {
             window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
@@ -196,6 +206,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
             window.ipcRenderer.removeListener("trigger-search", triggerSearch)
+            window.ipcRenderer.removeListener("trigger-play", triggerPlay)
         }
     }, [])
 
@@ -227,7 +238,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 }
             }
         }
-        const interval = window.setInterval(updateProgress, 1000)
+        const interval = window.setInterval(updateProgress, 100)
         return () => {
             window.clearInterval(interval)
         }
@@ -596,6 +607,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             )
         }
         Tone.getTransport().start()
+        if (abloop) {
+            applyAB(duration)
+        } else {
+            Tone.Transport.loopEnd = currentDuration
+        }   
     }
 
     useEffect(() => {
@@ -675,6 +691,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             currentPlayer.reverse = currentReverse
         }
         Tone.getTransport().start()
+        applyAB(duration)
     }
 
     useEffect(() => {
@@ -765,8 +782,20 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         Tone.getTransport().loop = loop
         if (!loop) return
 
-        Tone.getTransport().loopStart = abloop ? (loopStart / 100) * duration : 0
-        Tone.getTransport().loopEnd = abloop ? (loopEnd / 100) * duration : duration
+        if (abloop) {
+            const percent = duration / 100
+
+            if (reverse) {
+                Tone.getTransport().loopStart = (100 - loopEnd) * percent
+                Tone.getTransport().loopEnd = (100 - loopStart) * percent
+            } else {
+                Tone.getTransport().loopStart = loopStart * percent
+                Tone.getTransport().loopEnd = loopEnd * percent
+            }
+        } else {
+            Tone.getTransport().loopStart = 0
+            Tone.getTransport().loopEnd = duration
+        }
 
     }, [loop, abloop, loopStart, loopEnd, duration, midi, midiDuration, speed])
 
@@ -1315,15 +1344,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             setMidi(false)
             const songName = await window.ipcRenderer.invoke("get-song-name", url)
             let artwork = await window.ipcRenderer.invoke("get-art", url)
-            if (artwork.includes("ytimg")) artwork = await functions.cropToCenterSquare(artwork)
+            if (artwork) {
+                if (artwork.includes("ytimg")) artwork = await functions.cropToCenterSquare(artwork)
+                let updatedBuffer = await functions.appendMP3Cover(buffer, artwork, songName, player.buffer.duration)
+                window.ipcRenderer.invoke("append-song-cover", file, updatedBuffer)
+            }
             setSongName(songName)
             setSong(file)
-            setSongCover(artwork)
+            setSongCover(artwork ?? "")
             setSongUrl(url)
             player.load(file)
             await Tone.loaded()
-            let updatedBuffer = await functions.appendMP3Cover(buffer, artwork, songName, player.buffer.duration)
-            window.ipcRenderer.invoke("append-song-cover", file, updatedBuffer)
             updateDuration()
             updateRecentFiles(songName, file, artwork, url, false, midiDuration, bpm)
             switchState(false)
@@ -1393,9 +1424,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (reverbMix === 0) {
             removeEffect("reverb")
         } else {
-            const reverb = new Tone.Reverb({wet: reverbMix, decay: reverbDecay})
-            if (noApply) return reverb
-            pushEffect("reverb", reverb)
+            if (!reverbNode) reverbNode = new Tone.Reverb({wet: reverbMix, decay: reverbDecay})
+            reverbNode.wet.value = reverbMix
+            reverbNode.decay = reverbDecay
+            if (noApply) return reverbNode
+            pushEffect("reverb", reverbNode)
             applyEffects()
         }
     }
@@ -1408,9 +1441,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (delayMix === 0) {
             removeEffect("delay")
         } else {
-            const delay = new Tone.PingPongDelay({wet: delayMix, delayTime: delayTime, feedback: delayFeedback})
-            if (noApply) return delay
-            pushEffect("delay", delay)
+            if (!delayNode) delayNode = new Tone.PingPongDelay({wet: delayMix, delayTime: delayTime, feedback: delayFeedback})
+            delayNode.wet.value = delayMix
+            delayNode.delayTime.value = delayTime
+            delayNode.feedback.value = delayFeedback
+            if (noApply) return delayNode
+            pushEffect("delay", delayNode)
             applyEffects()
         }
     }
@@ -1423,9 +1459,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (phaserMix === 0) {
             removeEffect("phaser")
         } else {
-            const phaser = new Tone.Phaser({wet: phaserMix, frequency: phaserFrequency})
-            if (noApply) return phaser
-            pushEffect("phaser", phaser)
+            if (!phaserNode) phaserNode = new Tone.Phaser({wet: phaserMix, frequency: phaserFrequency})
+            phaserNode.wet.value = phaserMix
+            phaserNode.frequency.value = phaserFrequency
+            if (noApply) return phaserNode
+            pushEffect("phaser", phaserNode)
             applyEffects()
         }
     }
@@ -1446,9 +1484,15 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowpassCutoff === 100) {
             removeEffect("lowpass")
         } else {
-            const low = new Tone.Filter({type: "lowpass", frequency: functions.logSlider2(lowpassCutoff, 20, 20000), Q: filterResonance, rolloff: getFilterSlope()})
-            if (noApply) return low
-            pushEffect("lowpass", low)
+            if (!lowpassNode) lowpassNode = new Tone.Filter({type: "lowpass", 
+                frequency: functions.logSlider2(lowpassCutoff, 20, 20000), 
+                Q: filterResonance, rolloff: getFilterSlope()})
+            lowpassNode.type = "lowpass"
+            lowpassNode.frequency.value = functions.logSlider2(lowpassCutoff, 20, 20000)
+            lowpassNode.Q.value = filterResonance
+            lowpassNode.rolloff = getFilterSlope()
+            if (noApply) return lowpassNode
+            pushEffect("lowpass", lowpassNode)
             applyEffects()
         }
     }
@@ -1461,9 +1505,15 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highpassCutoff === 0) {
             removeEffect("highpass")
         } else {
-            const high = new Tone.Filter({type: "highpass", frequency: functions.logSlider2(highpassCutoff, 20, 20000), Q: filterResonance, rolloff: getFilterSlope()})
-            if (noApply) return high
-            pushEffect("highpass", high)
+            if (!highpassNode) highpassNode = new Tone.Filter({type: "highpass", 
+                frequency: functions.logSlider2(highpassCutoff, 20, 20000), 
+                Q: filterResonance, rolloff: getFilterSlope()})
+            highpassNode.type = "highpass"
+            highpassNode.frequency.value = functions.logSlider2(highpassCutoff, 20, 20000)
+            highpassNode.Q.value = filterResonance
+            highpassNode.rolloff = getFilterSlope()
+            if (noApply) return highpassNode
+            pushEffect("highpass", highpassNode)
             applyEffects()
         }
     }
@@ -1476,9 +1526,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highshelfGain === 0) {
             removeEffect("highshelf")
         } else {
-            const high = new Tone.Filter({type: "highshelf", frequency: functions.logSlider2(highshelfCutoff, 20, 20000), gain: highshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
-            if (noApply) return high
-            pushEffect("highshelf", high)
+            if (!highshelfNode) highshelfNode = new Tone.Filter({type: "highshelf", 
+                frequency: functions.logSlider2(highshelfCutoff, 20, 20000), 
+                gain: highshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
+            highshelfNode.type = "highshelf"
+            highshelfNode.frequency.value = functions.logSlider2(highshelfCutoff, 20, 20000)
+            highshelfNode.gain.value = highshelfGain
+            highshelfNode.Q.value = filterResonance
+            highshelfNode.rolloff = getFilterSlope()
+            if (noApply) return highshelfNode
+            pushEffect("highshelf", highshelfNode)
             applyEffects()
         }
     }
@@ -1491,9 +1548,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowshelfGain === 0) {
             removeEffect("lowshelf")
         } else {
-            const low = new Tone.Filter({type: "lowshelf", frequency: functions.logSlider2(lowshelfCutoff, 20, 20000), gain: lowshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
-            if (noApply) return low
-            pushEffect("lowshelf", low)
+            if (!lowshelfNode) lowshelfNode= new Tone.Filter({type: "lowshelf", 
+                frequency: functions.logSlider2(lowshelfCutoff, 20, 20000), 
+                gain: lowshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
+            lowshelfNode.type = "lowshelf"
+            lowshelfNode.frequency.value = functions.logSlider2(lowshelfCutoff, 20, 20000)
+            lowshelfNode.gain.value = lowshelfGain
+            lowshelfNode.Q.value = filterResonance
+            lowshelfNode.rolloff = getFilterSlope()
+            if (noApply) return lowshelfNode
+            pushEffect("lowshelf", lowshelfNode)
             applyEffects()
         }
     }

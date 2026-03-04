@@ -90,7 +90,7 @@ const AudioEffects: React.FunctionComponent = () => {
                             <div className="effects-row">
                                 <p className="effects-text">Delay Feedback: </p>
                                 <Slider className="fx-slider" trackClassName="fx-slider-track" thumbClassName="fx-slider-thumb" 
-                                onChange={(value: number) => setDelayFeedback(value)} min={0.1} max={1} step={0.1} value={delayFeedback}/>
+                                onChange={(value: number) => setDelayFeedback(value)} min={0.1} max={0.9} step={0.1} value={delayFeedback}/>
                             </div>
                             <div className="effects-row">
                                 <p className="effects-text">Phaser Mix: </p>

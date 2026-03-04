@@ -4,7 +4,7 @@
  * Licensed under CC BY-NC 4.0. See license.txt for details. *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-import {contextBridge, ipcRenderer, IpcRendererEvent} from "electron"
+import {contextBridge, ipcRenderer, webUtils, IpcRendererEvent} from "electron"
 
 declare global {
   interface Window {
@@ -18,6 +18,9 @@ declare global {
     shell: {
       showItemInFolder: (path: string) => Promise<void>
     },
+    webUtils: {
+      getPathForFile: (file: File) => string
+    }
   }
 }
 
@@ -42,6 +45,10 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
 
 contextBridge.exposeInMainWorld("shell", {
     showItemInFolder: async (location: string) => ipcRenderer.invoke("shell:showItemInFolder", location)
+})
+
+contextBridge.exposeInMainWorld("webUtils", {
+    getPathForFile: (file: File) => webUtils.getPathForFile(file)
 })
 
 contextBridge.exposeInMainWorld("platform", process.platform === "darwin" ? "mac" : "windows")

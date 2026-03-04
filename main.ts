@@ -298,6 +298,15 @@ ipcMain.handle("get-song", async (event, url: string) => {
     const buffer = await fetch(stream, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
     fs.writeFileSync(savePath, Buffer.from(buffer))
     return {buffer, file: savePath}
+  } else {
+    let title = decodeURIComponent(path.basename(url)).slice(0, 20)
+    const savePath = path.join(audioDest, `${title}.mp3`)
+    const buffer = await fetch(url, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
+      .catch(() => null)
+    if (!buffer) return {buffer: null, file: null}
+
+    fs.writeFileSync(savePath, Buffer.from(buffer))
+    return {buffer, file: savePath}
   }
 })
 
@@ -310,6 +319,8 @@ ipcMain.handle("get-song-name", async (event, url: string) => {
   } else if (url.includes("bandcamp.com")) {
     const {title} = await getBandcampInfo(url)
     name = title
+  } else {
+    name = decodeURIComponent(path.basename(url)).slice(0, 20)
   }
   return name
 })
@@ -467,22 +478,16 @@ const applicationMenu = () =>  {
     {
       label: "File",
       submenu: [
-        {
-          label: "Open", 
-          accelerator: "CmdOrCtrl+O",
+        {label: "Open", accelerator: "CmdOrCtrl+O",
           click: (item, window) => {
             const win = window as BrowserWindow
             win.webContents.send("trigger-open")
-          }
-        },
-        {
-          label: "Save",
-          accelerator: "CmdOrCtrl+S",
+        }},
+        {label: "Save", accelerator: "CmdOrCtrl+S",
           click: (item, window) => {
             const win = window as BrowserWindow
             win?.webContents.send("trigger-save")
-          }
-        }
+        }}
       ]
     },
     {
@@ -498,15 +503,23 @@ const applicationMenu = () =>  {
         {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()}
       ]
     },
+    {
+      label: "Playback",
+      submenu: [
+        {label: "Toggle Play", 
+          click: (item, window) => {
+            const win = window as BrowserWindow
+            win.webContents.send("trigger-play")
+        }}
+      ]
+    },
     {role: "windowMenu"},
     {
       role: "help",
       submenu: [
         {role: "reload"},
         {role: "forceReload"},
-        {role: "toggleDevTools"},
-        {type: "separator"},
-        {label: "Online Support", click: () => shell.openExternal(pack.repository.url)}
+        {role: "toggleDevTools"}
       ]
     }
   ]

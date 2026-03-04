@@ -65,7 +65,7 @@ const SearchDialog: React.FunctionComponent = (props) => {
                 <div className="search-dialog-box" onMouseOver={() => setHover(true)} onMouseLeave={() => setHover(false)}>
                     <div className="search-dialog-container">
                         <form className="search-dialog-bar">
-                            <input type="text" className="search-dialog-input" ref={searchBox} placeholder="Soundcloud link..." spellCheck="false"/>
+                            <input type="text" className="search-dialog-input" ref={searchBox} placeholder="Audio link..." spellCheck="false"/>
                             
                             <button onClick={(event) => {event.preventDefault(); search()}} className="search-dialog-button">
                                 <SearchIcon classname="search-dialog-icon"/>
