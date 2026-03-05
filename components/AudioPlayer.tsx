@@ -6,7 +6,6 @@
 
 import React, {useEffect, useEffectEvent, useState, useRef} from "react"
 import {usePlaybackSelector, usePlaybackActions} from "../store"
-import path from "path"
 import Slider from "react-slider"
 import * as Tone from "tone"
 import {Midi} from "@tonejs/midi"
@@ -936,7 +935,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         let bpm = midiFile.header.tempos[0].bpm
         setBpm(bpm)
         setSongCover(midiPlaceholder)
-        let songName = path.basename(file).replace(".mid", "")
+        let songName = await window.path.basename(file)
+        songName = songName.replace(".mid", "")
         setSongName(songName)
         setSong(file)
         setSongUrl("")
@@ -950,7 +950,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const upload = useEffectEvent(async (file?: string) => {
         if (!file) file = await window.ipcRenderer.invoke("select-file")
         if (!file) return
-        if (path.extname(file) === ".mid") return uploadMIDI(file)
+        if (await window.path.extname(file) === ".mid") return uploadMIDI(file)
         if (process.platform === "win32") if (!file.startsWith("file:///")) file = `file:///${file}`
         setMidi(false)
         const fileObject = await functions.getFile(file)
@@ -969,8 +969,9 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             setSongCover(songCover)
         }
-        let songName = path.basename(file).replace(".mp3", "").replace(".wav", "")
-            .replace(".flac", "").replace(".ogg", "")
+        let songName = await window.path.basename(file)
+        songName = songName.replace(".mp3", "").replace(".wav", "")
+           .replace(".flac", "").replace(".ogg", "")
         setSongName(songName)
         setSong(file)
         setSongUrl("")
@@ -1273,7 +1274,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const defaultPath = `${functions.decodeEntities(songName)}${editCode}`
         const savePath = await window.ipcRenderer.invoke("save-dialog", defaultPath)
         if (!savePath) return
-        if (path.extname(savePath) === ".mid") {
+        if (await window.path.extname(savePath) === ".mid") {
             if (!midi) return
             const midiTrack = new Midi()
             midiTrack.header = midiFile.header
@@ -1320,7 +1321,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             }
             const audioBuffer = await render(start, currentDuration)
             if (!audioBuffer) return
-            if (path.extname(savePath) === ".mp3") {
+            if (await window.path.extname(savePath) === ".mp3") {
                 audioEncoder(audioBuffer.get(), 320, null, async (blob: Blob) => {
                     let mp3 = await blob.arrayBuffer() as any
                     if (songCover) mp3 = await functions.appendMP3Cover(mp3, songCover, songName, currentDuration)

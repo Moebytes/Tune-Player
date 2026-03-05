@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run clean && rsbuild build && electron dist/main/index.js",
-    "build": "npm run clean ./build && rsbuild build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder -p never",
+    "build": "npm run clean ./build && rsbuild build && electron-builder -p never",
     "clean": "del-cli ./dist"
   },
   "keywords": [
@@ -51,16 +51,10 @@
       }
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
+      "target": {
+          "target": "appx",
           "arch": "x64"
-        },
-        {
-          "target": "msix",
-          "arch": "x64"
-        }
-      ],
+      },
       "extraFiles": [
         "ytdl/yt-dlp.exe",
         "ffmpeg/ffmpeg.exe",
@@ -78,11 +72,10 @@
       "installerSidebar": "./assets/installer.bmp",
       "uninstallerSidebar": "./assets/installer.bmp"
     },
-    "msix": {
+    "appx": {
       "identityName": "Moebytes.TunePlayer",
-      "publisher": "CN=4C1B763B-CF01-4978-8749-986F562173D8",
-      "publisherDisplayName": "Moebytes",
-      "allowExecution": true
+      "publisher": "CN=4C1B763B-CF01-4978-8749-986F562173D8, OID.2.25.311729368913984317654407730594956997722=1",
+      "publisherDisplayName": "Moebytes"
     },
     "linux": {
       "target": {

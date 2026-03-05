@@ -5,6 +5,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 import {contextBridge, ipcRenderer, webUtils, IpcRendererEvent} from "electron"
+import path from "path"
 
 declare global {
   interface Window {
@@ -20,6 +21,10 @@ declare global {
     },
     webUtils: {
       getPathForFile: (file: File) => string
+    },
+    path: {
+      basename: (filepath: string, suffix?: string) => Promise<string>
+      extname: (filepath: string) => Promise<string>
     }
   }
 }
@@ -49,6 +54,11 @@ contextBridge.exposeInMainWorld("shell", {
 
 contextBridge.exposeInMainWorld("webUtils", {
     getPathForFile: (file: File) => webUtils.getPathForFile(file)
+})
+
+contextBridge.exposeInMainWorld("path", {
+  basename: (filepath: string, suffix?: string) => ipcRenderer.invoke("path:basename", filepath, suffix),
+  extname: (filepath: string) => ipcRenderer.invoke("path:extname", filepath)
 })
 
 contextBridge.exposeInMainWorld("platform", process.platform === "darwin" ? "mac" : "windows")

@@ -6,7 +6,6 @@
 
 import {guess} from "web-audio-beat-detector"
 import {ID3Writer} from "browser-id3-writer"
-import path from "path"
 
 export interface SongItem {
     bpm: number
@@ -120,7 +119,9 @@ export default class Functions {
 
     public static getFile = async (filepath: string) => {
         const blob = await fetch(filepath).then((r) => r.blob())
-        const name = path.basename(filepath).replace(".mp3", "").replace(".wav", "").replace(".flac", "").replace(".ogg", "")
+        const name = await window.path.basename(filepath)
+        name = name.replace(".mp3", "").replace(".wav", "")
+            .replace(".flac", "").replace(".ogg", "")
         // @ts-ignore
         blob.lastModifiedDate = new Date()
         // @ts-ignore

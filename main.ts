@@ -80,6 +80,14 @@ ipcMain.handle("shell:showItemInFolder", (event, location: string) => {
   shell.showItemInFolder(path.normalize(location))
 })
 
+ipcMain.handle("path:basename", (event, pathname: string, suffix?: string) => {
+  return path.basename(pathname, suffix)
+})
+
+ipcMain.handle("path:extname", (event, pathname: string) => {
+  return path.extname(pathname)
+})
+
 ipcMain.handle("save-file", async (event, filePath: string, buffer: Buffer) => {
   fs.writeFileSync(filePath, buffer)
   shell.showItemInFolder(path.normalize(filePath))
