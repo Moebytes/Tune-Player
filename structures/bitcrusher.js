@@ -25,8 +25,11 @@ class BitCrushProcessor extends AudioWorkletProcessor {
         const newBitDepth = parameters.bitDepth[0]
         const newSampleRate = parameters.sampleRate[0]
         let frequencyReduction = newSampleRate / sampleRate
-        if (Number.isNaN(frequencyReduction)) frequencyReduction = 1
-  
+
+        if (!Number.isFinite(frequencyReduction) || 
+            Number.isNaN(frequencyReduction) ||
+            frequencyReduction <= 0) frequencyReduction = 1
+        
         for (let channel = 0; channel < input.length; channel++) {
             const samples = input[channel]
             const newSamples = output[channel]
