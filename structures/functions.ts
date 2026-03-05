@@ -119,7 +119,7 @@ export default class Functions {
 
     public static getFile = async (filepath: string) => {
         const blob = await fetch(filepath).then((r) => r.blob())
-        const name = await window.path.basename(filepath)
+        let name = await window.path.basename(filepath)
         name = name.replace(".mp3", "").replace(".wav", "")
             .replace(".flac", "").replace(".ogg", "")
         // @ts-ignore
