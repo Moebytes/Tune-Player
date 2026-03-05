@@ -116,6 +116,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const [effects, setEffects] = useState([] as {type: string, node: Tone.ToneAudioNode}[])
     const [showSpeedPopup, setShowSpeedPopup] = useState(false)
     const [showPitchPopup, setShowPitchPopup] = useState(false)
+    const [synthLoaded, setSynthLoaded] = useState(false)
 
     const progressBar = useRef(null) as any
     const volumeBar = useRef(null) as any
@@ -231,10 +232,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                     setPaused(true)
                 }
                 if (Tone.getTransport().seconds === Math.round(duration) - 1) Tone.getTransport().seconds = Math.round(duration)
-            } else {
-                if (midi && Math.floor(Tone.getTransport().seconds) < 0.05) {
-                    playMIDI()
-                }
             }
         }
         const interval = window.setInterval(updateProgress, 100)
@@ -385,6 +382,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (synthSaved.release !== undefined) setRelease(Number(synthSaved.release))
         if (synthSaved.poly !== undefined) setPoly(Boolean(synthSaved.poly))
         if (synthSaved.portamento !== undefined) setPortamento(Number(synthSaved.portamento))
+
+        setSynthLoaded(true)
     }
 
     const refreshState = useEffectEvent(() => {
@@ -436,7 +435,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         nodes = (nodes ?? []).filter(Boolean)
         if (nodes[0]) nodes.forEach((n) => n?.disconnect())
         if (midi) {
-            if (synths.length) synths.forEach((s) => s.chain(...[...nodes, Tone.getDestination()]))
+            if (synths.length) synths.forEach((s) => s.chain(...[...nodes, gainNode]))
         } else {
             if (pitchLFO) {
                 if (splitBands) {
@@ -502,7 +501,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         let array = synthArray ? synthArray : synths
         while (array.length) {
             const synth = array.shift()
-            synth?.disconnect()
             synth?.dispose()
         }
     })
@@ -538,13 +536,21 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (!checkBuffer()) return
         await Tone.start()
         updateDuration()
+
+        if (!loop && Tone.getTransport().seconds >= duration - 1) {
+            Tone.getTransport().seconds = 0
+        }
+
         if (Tone.getTransport().state === "started" && !alwaysPlay) {
             if (midi) disposeSynths()
             Tone.getTransport().pause()
             setPaused(true)
         } else {
-            if (midi) await playMIDI()
-            Tone.getTransport().start()
+            if (midi) {
+                await playMIDI()
+            } else {
+                Tone.getTransport().start()
+            }
             setPaused(false)
         }
     })
@@ -588,7 +594,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         let currentSpeed = value !== undefined ? Number(value) : speed
         let currentDuration = player.buffer.duration / currentSpeed
         if (midi) {
-            await playMIDI()
+            await buildMIDI()
+
+            const newDuration = midiDuration / currentSpeed
+            setDuration(newDuration)
+
+            if (abloop) {
+                applyAB(newDuration)
+            } else {
+                Tone.Transport.loopEnd = newDuration
+            }
         } else {
             let currentPlayer = player
             if (applyState) {
@@ -604,13 +619,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 Math.max(newSeconds, 0),
                 currentDuration - 0.001
             )
+            if (abloop) {
+                applyAB(duration)
+            } else {
+                Tone.Transport.loopEnd = currentDuration
+            }   
         }
         Tone.getTransport().start()
-        if (abloop) {
-            applyAB(duration)
-        } else {
-            Tone.Transport.loopEnd = currentDuration
-        }   
     }
 
     useEffect(() => {
@@ -626,7 +641,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         Tone.getTransport().pause()
         let currentPitch = value !== undefined ? Number(value) : pitch
         if (midi) {
-            if (!applyState) await playMIDI()
+            await buildMIDI()
         } else {
             const pitchCorrect = preservesPitch ? 1 / speed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(currentPitch) * pitchCorrect
@@ -680,7 +695,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (val > duration - 1) val = duration - 1
         if (midi) {
             Tone.getTransport().seconds = val
-            await playMIDI()
+            await buildMIDI()
         } else {
             let currentPlayer = player
             if (applyState) {
@@ -801,6 +816,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const seek = (value: number) => {
         setDragging(false)
         let percent = value / 100    
+        const wasPaused = paused
         Tone.getTransport().pause() 
         if (reverse) {
             let value = (1-percent) * duration
@@ -813,8 +829,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (value > duration - 1) value = duration - 1
             Tone.getTransport().seconds = value
         }
-        Tone.getTransport().start()
-        if (midi) playMIDI()
+        if (midi) buildMIDI()
+        if (!wasPaused) Tone.getTransport().start()
         let progress = (100 / duration) * Tone.getTransport().seconds
         if (reverse) progress = 100 - progress
         setProgress(progress)
@@ -856,68 +872,106 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     
     const updateSynth = () => {
         if (!lfoNode) return
-        if (midi) playMIDI()
+        if (midi) buildMIDI()
         lfoNode.port.postMessage({lfoShape: wave})
     }
 
     useEffect(() => {
+        if (!synthLoaded) return
         updateSynth()
         window.ipcRenderer.invoke("synth", {wave, basicWave, waveType, attack, 
         decay, sustain, release, poly, portamento})
-    }, [wave, basicWave, waveType, attack, decay, 
+    }, [synthLoaded, wave, basicWave, waveType, attack, decay, 
         sustain, release, poly, portamento])
 
-    const playMIDI = useEffectEvent(async (applyState?: any) => {
-        const localState = applyState ? applyState.state : {midiFile, midiDuration, speed, reverse, pitch, preservesPitch}
+    useEffect(() => {
+        const onLoop = async () => {
+            if (!midi) return
+            await buildMIDI()
+        }
+        Tone.getTransport().on("loop", onLoop)
+        return () => {
+            Tone.getTransport().off("loop", onLoop)
+        }
+    }, [midi, speed, pitch, reverse])
+
+    const playMIDI = useEffectEvent(async () => {
+        if (!midiFile) return
+        await Tone.start()
+
+        await buildMIDI()
+
+        if (Tone.getTransport().state === "started") {
+            Tone.getTransport().pause()
+            setPaused(true)
+        } else {
+            Tone.getTransport().start()
+            setPaused(false)
+        }
+
+    })
+
+    const buildMIDI = useEffectEvent(async (applyState?: any) => {
+        const localState = applyState ? applyState.state : 
+            {midiFile, midiDuration, speed, reverse, pitch, preservesPitch}
         const synthArray = applyState ? applyState.synths : synths
         if (!localState.midiFile) return
+
         const midi = localState.midiFile as Midi
         disposeSynths(synthArray)
+        const totalDuration = localState.midiDuration / localState.speed
+
         midi.tracks.forEach((track: any) => {
-            let synth = null as any
+            let synth: any
+
             if (poly) {
-                synth = new Tone.PolySynth(Tone.Synth, {oscillator: {type: wave as any}, envelope: {attack: attack, decay: decay, 
-                    sustain: sustain, release: release}, portamento: portamento, volume: -6}).sync()
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: {type: wave as any},
+                    envelope: {attack, decay, sustain, release},
+                    portamento,
+                    volume: -12
+                }).sync()
             } else {
-                synth = new Tone.Synth({oscillator: {type: wave as any}, envelope: {attack: attack, decay: decay, sustain: sustain, 
-                    release: release}, portamento: portamento, volume: -6}).sync()
+                synth = new Tone.Synth({
+                    oscillator: {type: wave as any},
+                    envelope: {attack, decay, sustain, release},
+                    portamento,
+                    volume: -12
+                }).sync()
             }
+
             if (!applyState) synth.toDestination()
             synthArray.push(synth)
-            if (localState.reverse) {
-                const reverseNotes = track.notes.slice().reverse()
-                const initialTime = reverseNotes[0].time
-                reverseNotes.forEach((reverseNote: any) => {
-                    let transposed = reverseNote.name
-                    if (localState.preservesPitch) {
-                        transposed = functions.transposeNote(reverseNote.name, localState.pitch)
-                    } else {
-                        transposed = functions.transposeNote(reverseNote.name, localState.pitch + functions.noteFactor(localState.speed))
-                    }
-                    synth.triggerAttackRelease(transposed, reverseNote.duration / localState.speed, 
-                        Math.abs(reverseNote.time - initialTime) / localState.speed, reverseNote.velocity)
-                })
-            } else {
-                track.notes.forEach((note: any) => {
-                    let transposed = note.name
-                    if (localState.preservesPitch) {
-                        transposed = functions.transposeNote(note.name, localState.pitch)
-                    } else {
-                        transposed = functions.transposeNote(note.name, localState.pitch + functions.noteFactor(localState.speed))
-                    }
-                    synth.triggerAttackRelease(transposed, note.duration / localState.speed, note.time / localState.speed, note.velocity)
-                })
-            }
+
+            track.notes.forEach((note: any) => {
+                let time = note.time
+                let duration = note.duration
+
+                if (localState.reverse) {
+                    time = localState.midiDuration - (note.time + note.duration)
+                }
+
+                time /= localState.speed
+                duration /= localState.speed
+
+                let transposed = note.name
+                if (localState.preservesPitch) {
+                    transposed = functions.transposeNote(note.name, localState.pitch)
+                } else {
+                    transposed = functions.transposeNote(
+                        note.name, localState.pitch + functions.noteFactor(localState.speed)
+                    )
+                }
+
+                synth.triggerAttackRelease(
+                    transposed,
+                    duration,
+                    time,
+                    note.velocity
+                )
+            })
         })
-        let totalDuration = midi.duration
-        if (!applyState && speed !== 1) {
-            let percent = Tone.getTransport().seconds / totalDuration
-            totalDuration = (localState.midiDuration / localState.speed)
-            let val = percent * totalDuration
-            if (val < 0) val = 0
-            if (val > totalDuration - 1) val = totalDuration - 1
-            Tone.getTransport().seconds = val
-        }
+
         updateDuration(totalDuration)
         applyEffects()
     })
@@ -1018,7 +1072,6 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (val < 0) val = 0
         if (val > duration - 1) val = duration - 1
         Tone.getTransport().seconds = val
-        if (midi) playMIDI()
     }
 
     const toggleAB = (value?: boolean) => {
@@ -1107,7 +1160,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const applyMIDIState = async (localState: any, synths: Tone.PolySynth[]) => {
         const apply = {state: localState, synths}
-        await playMIDI(apply)
+        await buildMIDI(apply)
         let editCode = ""
         if (localState.speed !== 1) {
             editCode += "-speed"
@@ -1402,17 +1455,19 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (sampleRate === 100) {
             removeEffect("bitcrush")
         } else {
-            if (!bitcrusherNode) {
+            let node = effect ? null : bitcrusherNode
+            if (!node) {
                 const context = Tone.getContext()
                 const bitcrusherSource = await window.ipcRenderer.invoke("get-bitcrusher-source")
                 const bitcrusherBlob = new Blob([bitcrusherSource], {type: "text/javascript"})
                 const bitcrusherURL = window.URL.createObjectURL(bitcrusherBlob)
                 await context.addAudioWorkletModule(bitcrusherURL, "bitcrush")
-                bitcrusherNode = context.createAudioWorkletNode("bitcrush-processor")
+                node = context.createAudioWorkletNode("bitcrush-processor")
             }
-            bitcrusherNode.parameters.get("sampleRate").value = functions.logSlider2(sampleRate, 100, 44100, 1)
-            if (noApply) return bitcrusherNode
-            pushEffect("bitcrush", bitcrusherNode)
+            node.parameters.get("sampleRate").value = functions.logSlider2(sampleRate, 100, 44100, 1)
+            if (noApply) return node
+            bitcrusherNode = node
+            pushEffect("bitcrush", node)
             applyEffects()
         }
     }
@@ -1425,11 +1480,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (reverbMix === 0) {
             removeEffect("reverb")
         } else {
-            if (!reverbNode) reverbNode = new Tone.Reverb({wet: reverbMix, decay: reverbDecay})
-            reverbNode.wet.value = reverbMix
-            reverbNode.decay = reverbDecay
-            if (noApply) return reverbNode
-            pushEffect("reverb", reverbNode)
+            let node = effect ? null : reverbNode
+            if (!node) node = new Tone.Reverb({wet: reverbMix, decay: reverbDecay})
+            node.wet.value = reverbMix
+            node.decay = reverbDecay
+            if (noApply) return node
+            reverbNode = node
+            pushEffect("reverb", node)
             applyEffects()
         }
     }
@@ -1442,12 +1499,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (delayMix === 0) {
             removeEffect("delay")
         } else {
-            if (!delayNode) delayNode = new Tone.PingPongDelay({wet: delayMix, delayTime: delayTime, feedback: delayFeedback})
-            delayNode.wet.value = delayMix
-            delayNode.delayTime.value = delayTime
-            delayNode.feedback.value = delayFeedback
-            if (noApply) return delayNode
-            pushEffect("delay", delayNode)
+            let node = effect ? null : delayNode
+            if (!node) node = new Tone.PingPongDelay({wet: delayMix, delayTime: delayTime, feedback: delayFeedback})
+            node.wet.value = delayMix
+            node.delayTime.value = delayTime
+            node.feedback.value = delayFeedback
+            if (noApply) return node
+            delayNode = node
+            pushEffect("delay", node)
             applyEffects()
         }
     }
@@ -1460,11 +1519,13 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (phaserMix === 0) {
             removeEffect("phaser")
         } else {
-            if (!phaserNode) phaserNode = new Tone.Phaser({wet: phaserMix, frequency: phaserFrequency})
-            phaserNode.wet.value = phaserMix
-            phaserNode.frequency.value = phaserFrequency
-            if (noApply) return phaserNode
-            pushEffect("phaser", phaserNode)
+            let node = effect ? null : phaserNode
+            if (!node) node = new Tone.Phaser({wet: phaserMix, frequency: phaserFrequency})
+            node.wet.value = phaserMix
+            node.frequency.value = phaserFrequency
+            if (noApply) return node
+            phaserNode = node
+            pushEffect("phaser", node)
             applyEffects()
         }
     }
@@ -1485,15 +1546,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowpassCutoff === 100) {
             removeEffect("lowpass")
         } else {
-            if (!lowpassNode) lowpassNode = new Tone.Filter({type: "lowpass", 
+            let node = effect ? null : lowpassNode
+            if (!node) node = new Tone.Filter({type: "lowpass", 
                 frequency: functions.logSlider2(lowpassCutoff, 20, 20000), 
                 Q: filterResonance, rolloff: getFilterSlope()})
-            lowpassNode.type = "lowpass"
-            lowpassNode.frequency.value = functions.logSlider2(lowpassCutoff, 20, 20000)
-            lowpassNode.Q.value = filterResonance
-            lowpassNode.rolloff = getFilterSlope()
-            if (noApply) return lowpassNode
-            pushEffect("lowpass", lowpassNode)
+            node.type = "lowpass"
+            node.frequency.value = functions.logSlider2(lowpassCutoff, 20, 20000)
+            node.Q.value = filterResonance
+            node.rolloff = getFilterSlope()
+            if (noApply) return node
+            lowpassNode = node
+            pushEffect("lowpass", node)
             applyEffects()
         }
     }
@@ -1506,15 +1569,17 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highpassCutoff === 0) {
             removeEffect("highpass")
         } else {
-            if (!highpassNode) highpassNode = new Tone.Filter({type: "highpass", 
+            let node = effect ? null : highpassNode
+            if (!node) node = new Tone.Filter({type: "highpass", 
                 frequency: functions.logSlider2(highpassCutoff, 20, 20000), 
                 Q: filterResonance, rolloff: getFilterSlope()})
-            highpassNode.type = "highpass"
-            highpassNode.frequency.value = functions.logSlider2(highpassCutoff, 20, 20000)
-            highpassNode.Q.value = filterResonance
-            highpassNode.rolloff = getFilterSlope()
-            if (noApply) return highpassNode
-            pushEffect("highpass", highpassNode)
+            node.type = "highpass"
+            node.frequency.value = functions.logSlider2(highpassCutoff, 20, 20000)
+            node.Q.value = filterResonance
+            node.rolloff = getFilterSlope()
+            if (noApply) return node
+            highpassNode = node
+            pushEffect("highpass", node)
             applyEffects()
         }
     }
@@ -1527,16 +1592,18 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (highshelfGain === 0) {
             removeEffect("highshelf")
         } else {
-            if (!highshelfNode) highshelfNode = new Tone.Filter({type: "highshelf", 
+            let node = effect ? null : highshelfNode
+            if (!node) node = new Tone.Filter({type: "highshelf", 
                 frequency: functions.logSlider2(highshelfCutoff, 20, 20000), 
                 gain: highshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
-            highshelfNode.type = "highshelf"
-            highshelfNode.frequency.value = functions.logSlider2(highshelfCutoff, 20, 20000)
-            highshelfNode.gain.value = highshelfGain
-            highshelfNode.Q.value = filterResonance
-            highshelfNode.rolloff = getFilterSlope()
-            if (noApply) return highshelfNode
-            pushEffect("highshelf", highshelfNode)
+            node.type = "highshelf"
+            node.frequency.value = functions.logSlider2(highshelfCutoff, 20, 20000)
+            node.gain.value = highshelfGain
+            node.Q.value = filterResonance
+            node.rolloff = getFilterSlope()
+            if (noApply) return node
+            highshelfNode = node
+            pushEffect("highshelf", node)
             applyEffects()
         }
     }
@@ -1549,16 +1616,18 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         if (lowshelfGain === 0) {
             removeEffect("lowshelf")
         } else {
-            if (!lowshelfNode) lowshelfNode= new Tone.Filter({type: "lowshelf", 
+            let node = effect ? null : lowshelfNode
+            if (!node) node = new Tone.Filter({type: "lowshelf", 
                 frequency: functions.logSlider2(lowshelfCutoff, 20, 20000), 
                 gain: lowshelfGain, Q: filterResonance, rolloff: getFilterSlope()})
-            lowshelfNode.type = "lowshelf"
-            lowshelfNode.frequency.value = functions.logSlider2(lowshelfCutoff, 20, 20000)
-            lowshelfNode.gain.value = lowshelfGain
-            lowshelfNode.Q.value = filterResonance
-            lowshelfNode.rolloff = getFilterSlope()
-            if (noApply) return lowshelfNode
-            pushEffect("lowshelf", lowshelfNode)
+            node.type = "lowshelf"
+            node.frequency.value = functions.logSlider2(lowshelfCutoff, 20, 20000)
+            node.gain.value = lowshelfGain
+            node.Q.value = filterResonance
+            node.rolloff = getFilterSlope()
+            if (noApply) return node
+            lowshelfNode = node
+            pushEffect("lowshelf", node)
             applyEffects()
         }
     }
