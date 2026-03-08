@@ -70,13 +70,18 @@ jobs:
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign:,productbuild: \
             -s -k actions build.keychain
-
-          security list-keychains -s build.keychain
+            
+          security list-keychains -d user -s build.keychain login.keychain
 
       - name: Install dependencies
         run: npm install
 
       - name: Build app
+        env:
+          CSC_LINK: ~/app_cert.p12
+          CSC_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
+          CSC_INSTALLER_LINK: ~/installer_cert.p12
+          CSC_INSTALLER_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
         run: npm run build
 
       - name: Replace spaces
