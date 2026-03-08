@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest, windows-latest, ubuntu-24.04-arm]
         include:
           - os: macos-latest
             runner: macos-latest
@@ -31,8 +31,8 @@ jobs:
           - os: windows-latest
             runner: windows-latest
             platform: win32
-          - os: ubuntu-latest
-            runner: ubuntu-latest
+          - os: ubuntu-24.04-arm
+            runner: ubuntu-24.04-arm
             platform: linux
 
     steps:
