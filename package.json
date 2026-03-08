@@ -85,8 +85,8 @@
     },
     "linux": {
       "target": {
-        "target": "appImage",
-        "arch": "x64"
+        "target": "AppImage",
+        "arch": "arm64"
       },
       "category": "Audio",
       "extraFiles": [
