@@ -1,12 +1,13 @@
 {
   "name": "tune-player",
   "version": "1.0.0",
+  "author": "Moebytes",
   "description": "A cute music player!",
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run clean && rsbuild build && electron dist/main/index.js",
     "build": "npm run clean ./build && rsbuild build && electron-builder -p never",
-    "clean": "del-cli ./dist"
+    "clean": "del-cli ./dist ./build"
   },
   "keywords": [
     "music",
@@ -16,10 +17,9 @@
     "anime",
     "cute"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Moebytes/Tune-Player"
-  },
+  "repository": "https://github.com/Moebytes/Tune-Player",
+  "privacyPolicy": "https://moebytes.com/privacy-policy",
+  "license": "CC BY-NC 4.0",
   "build": {
     "appId": "com.moebytes.tune-player",
     "productName": "Tune Player",
@@ -30,17 +30,21 @@
     },
     "mac": {
       "target": {
-        "target": "dmg",
+        "target": "mas",
         "arch": "arm64"
       },
+      "type": "distribution",
+      "provisioningProfile": "assets/mas/MacAppStore.provisionprofile",
       "category": "public.app-category.music",
       "extraFiles": [
-        "ytdl/yt-dlp.app",
-        "ffmpeg/ffmpeg.app",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"
       ]
+    },
+    "mas": {
+      "entitlements": "assets/mas/entitlements.mas.plist",
+      "entitlementsInherit": "assets/mas/entitlements.mas.inherit.plist"
     },
     "dmg": {
       "title": "Tune Player",
@@ -56,8 +60,6 @@
           "arch": "x64"
       },
       "extraFiles": [
-        "ytdl/yt-dlp.exe",
-        "ffmpeg/ffmpeg.exe",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"
@@ -79,7 +81,6 @@
       "capabilities": [
           "runFullTrust", 
           "internetClient",
-          "documentsLibrary",
           "extendedExecutionBackgroundAudio"
       ]
     },
@@ -90,8 +91,6 @@
       },
       "category": "Audio",
       "extraFiles": [
-        "ytdl/yt-dlp",
-        "ffmpeg/ffmpeg",
         "structures/bitcrusher.js",
         "structures/lfo.js",
         "structures/soundtouch.js"
@@ -134,8 +133,6 @@
       }
     ]
   },
-  "author": "Moebytes",
-  "license": "CC BY-NC 4.0",
   "devDependencies": {
     "@electron-rsbuild/plugin-main": "^0.0.12",
     "@electron-rsbuild/plugin-preload": "^0.0.12",

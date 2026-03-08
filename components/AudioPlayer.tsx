@@ -1004,8 +1004,14 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const upload = useEffectEvent(async (file?: string) => {
         if (!file) file = await window.ipcRenderer.invoke("select-file")
         if (!file) return
-        if (await window.path.extname(file) === ".mid") return uploadMIDI(file)
         if (process.platform === "win32") if (!file.startsWith("file:///")) file = `file:///${file}`
+        try {
+            await fetch(file)
+        } catch {
+            // If we don't have permission to open it, make the user select it
+            await window.ipcRenderer.invoke("select-file", file)
+        }
+        if (await window.path.extname(file) === ".mid") return uploadMIDI(file)
         setMidi(false)
         const fileObject = await functions.getFile(file)
         const tagInfo = await new Promise((resolve, reject) => {

@@ -4,3 +4,5 @@ node_modules
 assets/audio
 .env
 .DS_Store
+assets/mas/AppleDevelopment.provisionprofile
+assets/mas/MacAppStore.provisionprofile

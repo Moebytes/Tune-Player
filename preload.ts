@@ -5,7 +5,6 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 import {contextBridge, ipcRenderer, webUtils, IpcRendererEvent} from "electron"
-import path from "path"
 
 declare global {
   interface Window {

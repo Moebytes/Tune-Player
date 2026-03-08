@@ -21,20 +21,6 @@ import fs from "fs"
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
 
-let ytdlPath = undefined as any
-if (process.platform === "darwin") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.app")
-if (process.platform === "win32") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp.exe")
-if (process.platform === "linux") ytdlPath = path.join(app.getAppPath(), "../../ytdl/yt-dlp")
-if (!fs.existsSync(ytdlPath)) ytdlPath = "./ytdl/yt-dlp.app"
-if (!fs.existsSync(ytdlPath)) ytdlPath = "yt-dlp"
-
-let ffmpegPath = undefined as any
-if (process.platform === "darwin") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.app")
-if (process.platform === "win32") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg.exe")
-if (process.platform === "linux") ffmpegPath = path.join(app.getAppPath(), "../../ffmpeg/ffmpeg")
-if (!fs.existsSync(ffmpegPath)) ffmpegPath = "./ffmpeg/ffmpeg.app"
-if (!fs.existsSync(ffmpegPath)) ffmpegPath = "ffmpeg"
-
 const store = new Store()
 let initialTransparent = process.platform === "win32" ? store.get("transparent", false) as boolean : true
 let windowOpacity = store.get("window-opacity", 100) as number
@@ -262,12 +248,9 @@ const getBandcampInfo = async (trackUrl: string) => {
 }
 
 ipcMain.handle("get-song", async (event, url: string) => {
-  const audioDest = path.join(app.getPath("documents"), "Tune Player/audio")
-  if (!fs.existsSync(audioDest)) fs.mkdirSync(audioDest, {recursive: true})
-
   if (url.includes("soundcloud.com")) {
     const name = await soundcloud.util.getTitle(url)
-    const savePath = path.join(audioDest, `${name}.mp3`)
+    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
@@ -279,25 +262,17 @@ ipcMain.handle("get-song", async (event, url: string) => {
 
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
-    const savePath = path.join(audioDest, `${name}.mp3`)
+    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
     }
 
-    let args = [
-      "--js-runtimes", `node:${mainFunctions.getNodePath()}`, "--ffmpeg-location", ffmpegPath ?? "ffmpeg",
-      "-t", "mp3", url, "-o", savePath
-    ]
-    const str = await mainFunctions.spawn(ytdlPath ?? "yt-dlp", args).then((s: any) => s.stdout).catch((e: any) => e.stderr)
-    window?.webContents.send("debug", str)
-
-    let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
-    return {buffer, file: savePath}
-
+    // not implemented
+    return {buffer: null, file: savePath}
   } else if (url.includes("bandcamp.com")) {
     const {title: name, stream} = await getBandcampInfo(url)
-    const savePath = path.join(audioDest, `${name}.mp3`)
+    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
@@ -308,7 +283,7 @@ ipcMain.handle("get-song", async (event, url: string) => {
     return {buffer, file: savePath}
   } else {
     let title = decodeURIComponent(path.basename(url)).slice(0, 20)
-    const savePath = path.join(audioDest, `${title}.mp3`)
+    const savePath = path.join(app.getPath("downloads"), `${title}.mp3`)
     const buffer = await fetch(url, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
       .catch(() => null)
     if (!buffer) return {buffer: null, file: null}
@@ -386,9 +361,10 @@ ipcMain.handle("save-dialog", async (event, defaultPath: string) => {
   return save.filePath ? save.filePath : null
 })
 
-ipcMain.handle("select-file", async () => {
+ipcMain.handle("select-file", async (event, defaultPath?: string) => {
   if (!window) return
   const files = await dialog.showOpenDialog(window, {
+    defaultPath,
     filters: [
       {name: "All Files", extensions: ["*"]},
       {name: "Audio", extensions: ["mp3", "wav", "ogg", "flac", "aac"]},
@@ -467,12 +443,7 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
     {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
-    {label: "Paste Loop", click: () => event.sender.send("paste-loop")},
-    {type: "separator"},
-    {label: "Clear Audio Cache", click: () => {
-      const audioPath = path.join(app.getPath("documents"), `Tune Player/audio`)
-      mainFunctions.removeDirectory(audioPath)
-    }}
+    {label: "Paste Loop", click: () => event.sender.send("paste-loop")}
   ]
 
   const menu = Menu.buildFromTemplate(template)
@@ -527,7 +498,10 @@ const applicationMenu = () =>  {
       submenu: [
         {role: "reload"},
         {role: "forceReload"},
-        {role: "toggleDevTools"}
+        {role: "toggleDevTools"},
+        {type: "separator"},
+        {label: "Online Support", click: () => shell.openExternal(pack.repository)},
+        {label: "Privacy Policy", click: () => shell.openExternal(pack.privacyPolicy)}
       ]
     }
   ]
@@ -561,10 +535,6 @@ if (!singleLock) {
     localShortcut.register(window, "Control+Shift+I", () => {
       window?.webContents.openDevTools()
     })
-    if (ytdlPath && process.platform === "darwin") {
-      fs.chmodSync(ytdlPath, "777")
-      fs.chmodSync(ffmpegPath, "777")
-    }
     window?.webContents.on("did-finish-load", () => {
       window?.show()
     })
