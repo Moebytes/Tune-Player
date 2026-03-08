@@ -83,10 +83,8 @@ jobs:
 
       - name: Build app
         env:
-          CSC_NAME: ${{secrets.CSC_NAME}}
           CSC_LINK: ~/app_cert.p12
           CSC_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
-          CSC_INSTALLER_NAME: ${{secrets.CSC_INSTALLER_NAME}}
           CSC_INSTALLER_LINK: ~/installer_cert.p12
           CSC_INSTALLER_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
         run: npm run build
