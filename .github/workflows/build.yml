@@ -68,7 +68,7 @@ jobs:
 
           security import ~/installer_cert.p12 \
             -k build.keychain -f pkcs12 \
-            -P "${{secrets.CSC_KEY_PASSWORD}}" \
+            -P "${{secrets.CSC_INSTALLER_KEY_PASSWORD}}" \
             -T /usr/bin/codesign \
             -T /usr/bin/security \
             -T /usr/bin/pkgbuild \
@@ -77,7 +77,8 @@ jobs:
 
           security set-key-partition-list \
             -S apple-tool:,apple: \
-            -k ${{secrets.CSC_KEY_PASSWORD}}
+            -k ${{secrets.CSC_KEY_PASSWORD}} \
+            build.keychain
 
           security list-keychains -d user -s build.keychain login.keychain
           security find-identity -v -p codesigning build.keychain
