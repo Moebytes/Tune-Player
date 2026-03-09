@@ -37,5 +37,5 @@ Download from [releases](https://github.com/Moebytes/Tune-Player/releases).
 
 ### See Also
 
-- [Pic Viewer](https://github.com/Moebytes/Pic-Viewer)
-- [Motion Player](https://github.com/Moebytes/Motion-Player)
+- [Pic Display](https://github.com/Moebytes/Pic-Display)
+- [Frame Player](https://github.com/Moebytes/Frame-Player)
