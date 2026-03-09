@@ -86,6 +86,9 @@ jobs:
         run: npm install
 
       - name: Build app
+        env:
+          CSC_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
+          CSC_INSTALLER_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
         run: npm run build
 
       - name: Replace spaces
