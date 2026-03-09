@@ -92,10 +92,26 @@ jobs:
         shell: bash
         run: |
           cd build
-          find . -depth -name "* *" | while read f; do
+          for f in *; do
             nf=$(echo "$f" | tr ' ' '-')
-            mv "$f" "$nf"
+            if [ "$f" != "$nf" ]; then
+              mv "$f" "$nf"
+            fi
           done
+          
+      - name: Replace spaces (MAS pkg)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ -d "build/mas-arm64" ]; then
+            cd build/mas-arm64
+            for f in *; do
+              nf=$(echo "$f" | tr ' ' '-')
+              if [ "$f" != "$nf" ]; then
+                mv "$f" "$nf"
+              fi
+            done
+          fi
 
       - name: Upload macOS
         if: runner.os == 'macOS'
