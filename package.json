@@ -7,7 +7,7 @@
   "scripts": {
     "start": "npm run clean && rsbuild build && electron dist/main/index.js",
     "build": "npm run clean ./build && rsbuild build && electron-builder -p never",
-    "clean": "del-cli ./dist ./build"
+    "clean": "del-cli ./dist"
   },
   "keywords": [
     "music",
@@ -100,12 +100,6 @@
       "dist/**/*",
       "package.json"
     ],
-    "publish": {
-      "provider": "github",
-      "repo": "Tune-Player",
-      "owner": "Moebytes",
-      "releaseType": "draft"
-    },
     "fileAssociations": [
       {
         "ext": "mp3",
