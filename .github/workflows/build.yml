@@ -86,20 +86,15 @@ jobs:
         run: npm install
 
       - name: Build app
-        env:
-          CSC_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
-          CSC_INSTALLER_KEY_PASSWORD: ${{secrets.CSC_KEY_PASSWORD}}
         run: npm run build
 
       - name: Replace spaces
         shell: bash
         run: |
           cd build
-          for f in *; do
+          find . -depth -name "* *" | while read f; do
             nf=$(echo "$f" | tr ' ' '-')
-            if [ "$f" != "$nf" ]; then
-              mv "$f" "$nf"
-            fi
+            mv "$f" "$nf"
           done
 
       - name: Upload macOS
