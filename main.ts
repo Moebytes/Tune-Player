@@ -15,6 +15,8 @@ import Soundcloud from "soundcloud.ts"
 import functions, {SongItem} from "./structures/functions"
 import mainFunctions from "./structures/mainFunctions"
 import * as mm from "music-metadata"
+import {ID3Writer} from "browser-id3-writer"
+import {Midi} from "@tonejs/midi"
 import pack from "./package.json"
 import fs from "fs"
 
@@ -322,29 +324,114 @@ ipcMain.handle("get-art", async (event, url: string) => {
 })
 
 ipcMain.handle("show-info-dialog", async (event, songFile: string) => {
-  const metadata = await mm.parseFile(songFile)
+  if (songFile.endsWith(".mid")) {
+    const midi = new Midi(fs.readFileSync(songFile))
 
-  const detail = [
-    `Name: ${path.basename(songFile)}`,
-    `Duration: ${functions.formatSeconds(Number(metadata.format.duration))}`,
-    `Size: ${functions.readableFileSize(fs.lstatSync(songFile).size)}`,
-    `Container: ${metadata.format.container}`,
-    `Sample Rate: ${metadata.format.sampleRate}`,
-    `Samples: ${metadata.format.numberOfSamples ?? "?"}`,
-    `Bit Rate: ${functions.formatBitrate(Number(metadata.format.bitrate))}`,
-    `Bit Depth: ${metadata.format.bitsPerSample ?? "?"}`,
-    `Channels: ${metadata.format.numberOfChannels}`,
-    `Lossless: ${metadata.format.lossless ? "Yes" : "No"}`
-  ].join("\n")
+    const tempo = midi.header.tempos[0]?.bpm ? Math.round(midi.header.tempos[0].bpm) : "?"
+    const timeSignature = midi.header.timeSignatures[0]
+      ? `${midi.header.timeSignatures[0].timeSignature[0]}/${midi.header.timeSignatures[0].timeSignature[1]}`
+      : "?"
 
-  await dialog.showMessageBox(window!, {
-    type: "info",
-    title: "Audio Info",
-    message: "Audio Info",
-    detail,
-    buttons: ["Ok"],
-    noLink: true
-  })
+    const detail = [
+      `Name: ${path.basename(songFile)}`,
+      `Duration: ${functions.formatSeconds(midi.duration)}`,
+      `Size: ${functions.readableFileSize(fs.lstatSync(songFile).size)}`,
+      `Tracks: ${midi.tracks.length}`,
+      `PPQ: ${midi.header.ppq}`,
+      `Tempo: ${tempo} BPM`,
+      `Time Signature: ${timeSignature}`
+    ].join("\n")
+
+    await dialog.showMessageBox(window!, {
+      type: "info",
+      title: "MIDI Info",
+      message: "MIDI Info",
+      detail,
+      buttons: ["Ok"],
+      noLink: true
+    })
+  } else {
+    const metadata = await mm.parseFile(songFile)
+
+    const detail = [
+      `Name: ${path.basename(songFile)}`,
+      `Duration: ${functions.formatSeconds(Number(metadata.format.duration))}`,
+      `Size: ${functions.readableFileSize(fs.lstatSync(songFile).size)}`,
+      `Container: ${metadata.format.container}`,
+      `Sample Rate: ${metadata.format.sampleRate}`,
+      `Samples: ${metadata.format.numberOfSamples ?? "?"}`,
+      `Bit Rate: ${functions.formatBitrate(Number(metadata.format.bitrate))}`,
+      `Bit Depth: ${metadata.format.bitsPerSample ?? "?"}`,
+      `Channels: ${metadata.format.numberOfChannels}`,
+      `Lossless: ${metadata.format.lossless ? "Yes" : "No"}`
+    ].join("\n")
+
+    await dialog.showMessageBox(window!, {
+      type: "info",
+      title: "Audio Info",
+      message: "Audio Info",
+      detail,
+      buttons: ["Ok"],
+      noLink: true
+    })
+  }
+})
+
+ipcMain.handle("add-cover-art", async (event, songFile: string) => {
+  if (!songFile.endsWith("mp3")) {
+    await dialog.showMessageBox(window!, {
+      type: "error",
+      title: "Not an MP3",
+      message: "Only MP3 files can have cover art!",
+      buttons: ["Ok"],
+      noLink: true
+    })
+  } else {
+    if (!window) return
+    const result = await dialog.showOpenDialog(window, {
+      properties: ["openFile"],
+      title: "Add MP3 Cover",
+      buttonLabel: "Add",
+      filters: [
+        {name: "All Files", extensions: ["*"]},
+        {name: "JPG", extensions: ["jpg", "jpeg"]},
+        {name: "PNG", extensions: ["png"]},
+        {name: "WEBP", extensions: ["webp"]},
+        {name: "AVIF", extensions: ["avif"]}
+      ]
+    })
+    const imagePath = result.filePaths[0]
+    if (!imagePath) return
+
+    let songBuffer: Buffer
+    try {
+      songBuffer = fs.readFileSync(songFile)
+    } catch {
+      await dialog.showSaveDialog(window, {
+        title: "Select Song",
+        defaultPath: songFile
+      })
+      songBuffer = fs.readFileSync(songFile)
+    }
+
+    const imageBuffer = fs.readFileSync(imagePath)
+    const writer = new ID3Writer(songBuffer.buffer)
+    .setFrame("APIC" as any, {type: 3, data: imageBuffer, description: "Song Cover", useUnicodeEncoding: false} as any)
+    writer.addTag()
+
+    const arrayBuffer = await writer.getBlob().arrayBuffer()
+    fs.writeFileSync(songFile, Buffer.from(arrayBuffer))
+
+    let recent = store.get("recent", []) as SongItem[]
+    let index = recent.findIndex((r) => r.song === songFile)
+    if (index !== -1) {
+        const base64 = imageBuffer.toString("base64")
+        const ext = path.extname(imagePath).replace(".", "")
+        recent[index].songCover = `data:image/${ext};base64,${base64}`
+        store.set("recent", recent)
+        window?.webContents.send("update-recent-gui")
+    }
+  }
 })
 
 ipcMain.handle("save-dialog", async (event, defaultPath: string) => {
@@ -441,6 +528,7 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
     {label: "Remove Track", click: () => event.sender.send("trigger-remove")},
     {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()},
     {label: "Open File Location", click: () => event.sender.send("open-location", {x, y})},
+    {label: "Add Cover Art", click: () => event.sender.send("add-cover-art", {x, y})},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
     {label: "Paste Loop", click: () => event.sender.send("paste-loop")}

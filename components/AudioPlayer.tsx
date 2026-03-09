@@ -181,6 +181,12 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (!song) return
             window.shell.showItemInFolder(song)
         }
+        const addCoverArt = (event: any, coords: {x: number, y: number}) => {
+            const song = functions.songAtCursor(coords)
+            if (!song) return
+            window.ipcRenderer.invoke("add-cover-art", song)
+
+        }
         const showInfoDialog = (event: any, coords: {x: number, y: number}) => {
             const song = functions.songAtCursor(coords)
             if (!song) return
@@ -191,6 +197,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.addEventListener("mouseup", onWindowMouseUp)
         window.ipcRenderer.on("open-file", openFile)
         window.ipcRenderer.on("open-location", openLocation)
+        window.ipcRenderer.on("add-cover-art", addCoverArt)
         window.ipcRenderer.on("show-info-dialog", showInfoDialog)
         window.ipcRenderer.on("invoke-play", invokePlay)
         window.ipcRenderer.on("trigger-open", triggerOpen)
@@ -201,6 +208,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
             window.ipcRenderer.removeListener("open-location", openLocation)
+            window.ipcRenderer.removeListener("add-cover-art", addCoverArt)
             window.ipcRenderer.removeListener("show-info-dialog", showInfoDialog)
             window.ipcRenderer.removeListener("invoke-play", invokePlay)
             window.ipcRenderer.removeListener("trigger-open", triggerOpen)
