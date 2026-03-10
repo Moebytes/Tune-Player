@@ -19,6 +19,7 @@ import {ID3Writer} from "browser-id3-writer"
 import {Midi} from "@tonejs/midi"
 import pack from "./package.json"
 import fs from "fs"
+import os from "os"
 
 process.setMaxListeners(0)
 let window: Electron.BrowserWindow | null
@@ -34,6 +35,15 @@ const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:129.0) Gecko
 
 let workletPath = path.join(app.getAppPath(), "../../structures")
 if (!fs.existsSync(workletPath)) workletPath = path.join(__dirname, "../structures")
+
+if (process.platform === "darwin") {
+  const teamId = "EKBT5ADU6E"
+  const groupPath = path.join(os.homedir(), `Library/Group Containers/${teamId}.${pack.build.appId}`)
+  if (!fs.existsSync(groupPath)) fs.mkdirSync(groupPath, {recursive: true})
+  app.setPath("userData", groupPath)
+}
+
+const audioCacheLocation = path.join(app.getPath("userData"), "audio")
 
 ipcMain.handle("close", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
@@ -252,7 +262,7 @@ const getBandcampInfo = async (trackUrl: string) => {
 ipcMain.handle("get-song", async (event, url: string) => {
   if (url.includes("soundcloud.com")) {
     const name = await soundcloud.util.getTitle(url)
-    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
+    const savePath = path.join(audioCacheLocation, `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
@@ -264,7 +274,7 @@ ipcMain.handle("get-song", async (event, url: string) => {
 
   } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const name = await youtube.util.getTitle(url)
-    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
+    const savePath = path.join(audioCacheLocation, `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
@@ -274,7 +284,7 @@ ipcMain.handle("get-song", async (event, url: string) => {
     return {buffer: null, file: savePath}
   } else if (url.includes("bandcamp.com")) {
     const {title: name, stream} = await getBandcampInfo(url)
-    const savePath = path.join(app.getPath("downloads"), `${name}.mp3`)
+    const savePath = path.join(audioCacheLocation, `${name}.mp3`)
     if (fs.existsSync(savePath)) {
       let buffer = functions.bufferToArraybuffer(fs.readFileSync(savePath))
       return {buffer, file: savePath}
@@ -285,7 +295,7 @@ ipcMain.handle("get-song", async (event, url: string) => {
     return {buffer, file: savePath}
   } else {
     let title = decodeURIComponent(path.basename(url)).slice(0, 20)
-    const savePath = path.join(app.getPath("downloads"), `${title}.mp3`)
+    const savePath = path.join(audioCacheLocation, `${title}.mp3`)
     const buffer = await fetch(url, {headers: {"user-agent": userAgent}}).then((r) => r.arrayBuffer())
       .catch(() => null)
     if (!buffer) return {buffer: null, file: null}
@@ -531,7 +541,9 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
     {label: "Add Cover Art", click: () => event.sender.send("add-cover-art", {x, y})},
     {type: "separator"},
     {label: "Copy Loop", click: () => event.sender.send("copy-loop")},
-    {label: "Paste Loop", click: () => event.sender.send("paste-loop")}
+    {label: "Paste Loop", click: () => event.sender.send("paste-loop")},
+    {type: "separator"},
+    {label: "Open Audio Cache", click: () => shell.openPath(audioCacheLocation)}
   ]
 
   const menu = Menu.buildFromTemplate(template)
