@@ -23,12 +23,12 @@
   "build": {
     "appId": "com.moebytes.tune-player",
     "productName": "Tune Player",
-    "icon": "./assets/icon.png",
     "directories": {
       "buildResources": "assets",
       "output": "build"
     },
     "mac": {
+      "icon": "assets/mas/icon.icns",
       "target": {
         "target": "mas",
         "arch": "arm64"
@@ -55,6 +55,7 @@
       }
     },
     "win": {
+      "icon": "assets/appx/icon.icns",
       "target": {
           "target": "appx",
           "arch": "x64"
@@ -85,6 +86,7 @@
       ]
     },
     "linux": {
+      "icon": "assets/icon.png",
       "target": {
         "target": "AppImage",
         "arch": "x64"
