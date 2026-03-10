@@ -55,7 +55,7 @@
       }
     },
     "win": {
-      "icon": "assets/appx/icon.icns",
+      "icon": "assets/appx/icon.ico",
       "target": {
           "target": "appx",
           "arch": "x64"
