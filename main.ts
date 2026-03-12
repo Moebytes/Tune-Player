@@ -554,8 +554,7 @@ ipcMain.handle("context-menu", (event, {hasSelection, x, y}) => {
 const applicationMenu = () =>  {
   const template: MenuItemConstructorOptions[] = [
     {role: "appMenu"},
-    {
-      label: "File",
+    {label: "File",
       submenu: [
         {label: "Open", accelerator: "CmdOrCtrl+O",
           click: (item, window) => {
@@ -567,34 +566,26 @@ const applicationMenu = () =>  {
             const win = window as BrowserWindow
             win?.webContents.send("trigger-save")
         }}
-      ]
-    },
-    {
-      label: "Edit",
+    ]},
+    {label: "Edit",
       submenu: [
         {role: "copy"},
         {role: "paste"}
-      ]
-    },
-    {
-      label: "View",
+    ]},
+    {label: "View",
       submenu: [
         {label: `Opacity (${windowOpacity}%)`, submenu: opacitySubmenu()}
-      ]
-    },
-    {
-      label: "Playback",
+    ]},
+    {label: "Playback",
       submenu: [
         {label: "Toggle Play", 
           click: (item, window) => {
             const win = window as BrowserWindow
             win.webContents.send("trigger-play")
         }}
-      ]
-    },
+    ]},
     {role: "windowMenu"},
-    {
-      role: "help",
+    {role: "help",
       submenu: [
         {role: "reload"},
         {role: "forceReload"},
@@ -602,8 +593,7 @@ const applicationMenu = () =>  {
         {type: "separator"},
         {label: "Online Support", click: () => shell.openExternal(pack.repository)},
         {label: "Privacy Policy", click: () => shell.openExternal(pack.privacyPolicy)}
-      ]
-    }
+    ]}
   ]
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
