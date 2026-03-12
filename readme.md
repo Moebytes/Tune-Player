@@ -11,7 +11,6 @@ A cute music player!
 - Pitch shifting (and LFO pitch effect)
 - Looping from point A to point B
 - Audio filters and effects (lowpass, highpass, reverb, delay, bitcrush)
-- Support Soundcloud and Bandcamp tracks
 - Render and download audio/midi with effects
 - Stores your recent plays for easy access
 - Customize the controls of the MIDI synthesizer
@@ -39,3 +38,4 @@ Download from [releases](https://github.com/Moebytes/Tune-Player/releases).
 
 - [Pic Display](https://github.com/Moebytes/Pic-Display)
 - [Frame Player](https://github.com/Moebytes/Frame-Player)
+
