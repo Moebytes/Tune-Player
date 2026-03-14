@@ -81,8 +81,7 @@
       "publisherDisplayName": "Moebytes",
       "capabilities": [
           "runFullTrust", 
-          "internetClient",
-          "extendedExecutionBackgroundAudio"
+          "internetClient"
       ]
     },
     "linux": {
