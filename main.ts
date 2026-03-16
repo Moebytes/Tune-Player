@@ -578,11 +578,31 @@ const applicationMenu = () =>  {
     ]},
     {label: "Playback",
       submenu: [
-        {label: "Toggle Play", 
+        {label: "Play / Pause", 
           click: (item, window) => {
             const win = window as BrowserWindow
             win.webContents.send("trigger-play")
-        }}
+        }},
+        {label: "Reverse", 
+          click: (item, window) => {
+            const win = window as BrowserWindow
+            win.webContents.send("trigger-reverse")
+        }},
+        {label: "Speed",
+          submenu: [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4].reverse().map(speed => ({
+            label: `${speed.toFixed(2)}x`,
+            click: (i, w) => (w as BrowserWindow).webContents.send("trigger-speed", speed)
+        }))},
+        {label: "Pitch",
+          submenu: [-24, -19, -12, -7, 0, 7, 12, 19, 24].reverse().map(pitch => ({
+            label: pitch > 0 ? `+${pitch}` : `${pitch}`,
+            click: (i, w) => (w as BrowserWindow).webContents.send("trigger-pitch", pitch)
+        }))},
+        {label: "Volume",
+          submenu: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].reverse().map(volume => ({
+            label: `${Math.round(volume * 100)}%`,
+            click: (i, w) => (w as BrowserWindow).webContents.send("trigger-volume", volume)
+        }))}
     ]},
     {role: "windowMenu"},
     {role: "help",

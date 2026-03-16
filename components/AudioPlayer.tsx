@@ -172,6 +172,15 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         const triggerPlay = () => {
             play()
         }
+        const triggerSpeed = (event: any, speed: number) => {
+            setSpeed(speed)
+        }
+        const triggerPitch = (event: any, pitch: number) => {
+            setPitch(pitch)
+        }
+        const triggerVolume = (event: any, volume: number) => {
+            updateVolume(volume)
+        }
         const onWindowMouseUp = (event: any) => {
             setDragging(false)
             setABDragging(false)
@@ -204,6 +213,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         window.ipcRenderer.on("trigger-save", triggerSave)
         window.ipcRenderer.on("trigger-search", triggerSearch)
         window.ipcRenderer.on("trigger-play", triggerPlay)
+        window.ipcRenderer.on("trigger-reverse", triggerReverse)
+        window.ipcRenderer.on("trigger-speed", triggerSpeed)
+        window.ipcRenderer.on("trigger-pitch", triggerPitch)
+        window.ipcRenderer.on("trigger-volume", triggerVolume)
         return () => {
             window.removeEventListener("mouseup", onWindowMouseUp)
             window.ipcRenderer.removeListener("open-file", openFile)
@@ -215,8 +228,16 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             window.ipcRenderer.removeListener("trigger-save", triggerSave)
             window.ipcRenderer.removeListener("trigger-search", triggerSearch)
             window.ipcRenderer.removeListener("trigger-play", triggerPlay)
+            window.ipcRenderer.removeListener("trigger-reverse", triggerReverse)
+            window.ipcRenderer.removeListener("trigger-speed", triggerSpeed)
+            window.ipcRenderer.removeListener("trigger-pitch", triggerPitch)
+            window.ipcRenderer.removeListener("trigger-volume", triggerVolume)
         }
     }, [])
+
+    const triggerReverse = useEffectEvent(() => {
+        setReverse(!reverse)
+    })
 
     useEffect(() => {
         /*Update Progress*/
@@ -598,6 +619,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updateSpeed = async (value?: number | string, applyState?: any) => {
         if (!soundtouchNode) return
+        const wasPlaying = Tone.getTransport().state === "started"
         Tone.getTransport().pause()
         let currentSpeed = value !== undefined ? Number(value) : speed
         let currentDuration = player.buffer.duration / currentSpeed
@@ -633,7 +655,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 Tone.Transport.loopEnd = currentDuration
             }   
         }
-        Tone.getTransport().start()
+        if (wasPlaying) Tone.getTransport().start()
     }
 
     useEffect(() => {
@@ -646,6 +668,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
 
     const updatePitch = async (value?: number | string, applyState?: any) => {
         if (!soundtouchNode) return
+        const wasPlaying = Tone.getTransport().state === "started"
         Tone.getTransport().pause()
         let currentPitch = value !== undefined ? Number(value) : pitch
         if (midi) {
@@ -654,7 +677,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             const pitchCorrect = preservesPitch ? 1 / speed : 1
             soundtouchNode.parameters.get("pitch").value = functions.semitonesToScale(currentPitch) * pitchCorrect
         }
-        Tone.getTransport().start()
+        if (wasPlaying) Tone.getTransport().start()
     }
 
     useEffect(() => {
@@ -695,6 +718,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     }
 
     const updateReverse = async (value?: boolean, applyState?: any) => {
+        const wasPlaying = Tone.getTransport().state === "started"
         Tone.getTransport().pause()
         let currentReverse = value !== undefined ? value : reverse
         let percent = Tone.getTransport().seconds / duration
@@ -712,7 +736,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (!applyState) Tone.getTransport().seconds = val
             currentPlayer.reverse = currentReverse
         }
-        Tone.getTransport().start()
+        if (wasPlaying) Tone.getTransport().start()
         applyAB(duration)
     }
 
@@ -824,7 +848,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
     const seek = (value: number) => {
         setDragging(false)
         let percent = value / 100    
-        const wasPaused = paused
+        const wasPlaying = Tone.getTransport().state === "started"
         Tone.getTransport().pause() 
         if (reverse) {
             let value = (1-percent) * duration
@@ -838,7 +862,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             Tone.getTransport().seconds = value
         }
         if (midi) buildMIDI()
-        if (!wasPaused) Tone.getTransport().start()
+        if (wasPlaying) Tone.getTransport().start()
         let progress = (100 / duration) * Tone.getTransport().seconds
         if (reverse) progress = 100 - progress
         setProgress(progress)
@@ -1708,8 +1732,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                             <div className="speed-popup">
                                 <div className="speed-popup-inner-container">
                                     <Slider className="speed-slider" trackClassName="speed-slider-track" thumbClassName="speed-slider-handle" ref={speedBar} 
-                                    min={0.5} max={4} step={stepFlag ? 0.5 : 0.1} value={speed} onChange={(value: number) => setSpeed(value)}/>
-                                    <span className="speed-popup-text">{speed.toFixed(1)}x</span>
+                                    min={0.25} max={4} step={stepFlag ? 0.25 : 0.1} value={speed} onChange={(value: number) => setSpeed(value)}/>
+                                    <span className="speed-popup-text">{speed.toFixed(2)}x</span>
                                 </div>
                                 <div className="speed-popup-inner-container">
                                     <span className="speed-popup-text">Pitch?</span>
