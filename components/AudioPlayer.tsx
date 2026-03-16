@@ -1040,8 +1040,8 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         try {
             await fetch(file)
         } catch {
-            // If we don't have permission to open it, make the user select it
-            await window.ipcRenderer.invoke("select-file", file)
+            // If we don't have permission to open it, make the user select the folder
+            await window.ipcRenderer.invoke("select-folder", file)
         }
         if (await window.path.extname(file) === ".mid") return uploadMIDI(file)
         setMidi(false)

@@ -472,6 +472,15 @@ ipcMain.handle("select-file", async (event, defaultPath?: string) => {
   return files.filePaths[0] ? files.filePaths[0] : null
 })
 
+ipcMain.handle("select-folder", async (event, defaultPath: string) => {
+  if (!window) return
+  const files = await dialog.showOpenDialog(window, {
+    defaultPath: path.dirname(defaultPath),
+    properties: ["openDirectory"]
+  })
+  return files.filePaths[0] ? files.filePaths[0] : null
+})
+
 ipcMain.handle("upload-file", (event, file) => {
   window?.webContents.send("open-file", file)
 })

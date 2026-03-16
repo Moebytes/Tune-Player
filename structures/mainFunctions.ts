@@ -6,12 +6,24 @@
 
 import fs from "fs"
 import path from "path"
+import {dialog} from "electron"
 
 const audioExtensions = [".mp3", ".wav", ".ogg", ".flac", ".aac", ".mid"]
 
 export default class MainFunctions {
-    public static getSortedFiles = async (dir: string) => {
-        const files = await fs.promises.readdir(dir)
+    public static getSortedFiles = async (dir: string, window: Electron.BrowserWindow) => {
+        let files = [] as string[]
+        try {
+            files = await fs.promises.readdir(dir)
+        } catch {
+            const result = await dialog.showOpenDialog(window, {
+                defaultPath: dir,
+                properties: ["createDirectory", "openDirectory"]
+            })
+            dir = result.filePaths[0]
+            if (!dir) return []
+            files = await fs.promises.readdir(dir)
+        }
         return files
             .filter((f) => audioExtensions.includes(path.extname(f)))
             .map(fileName => ({
