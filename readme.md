@@ -33,10 +33,9 @@ Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0K
 ### Purchase
 
 <a href="https://apps.apple.com/us/app/tune-player/id6760257927" target="_blank">
-  <img src="assets/images/mac-app-store.svg" height="50"/>
+  <img src="assets/images/mac-app-store.svg" style="height:60px"/>
 </a>
-
-<br>
+<br/><br/>
 
 Linux version is free and available in [releases](https://github.com/Moebytes/Tune-Player/releases).
 
