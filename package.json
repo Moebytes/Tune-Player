@@ -1,6 +1,6 @@
 {
   "name": "tune-player",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Moebytes",
   "description": "A cute music player!",
   "main": "dist/main/index.js",
@@ -27,6 +27,7 @@
       "buildResources": "assets",
       "output": "build"
     },
+    "electronLanguages": ["en"],
     "mac": {
       "icon": "assets/mas/icon.icns",
       "target": {
