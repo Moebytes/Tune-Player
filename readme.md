@@ -33,8 +33,9 @@ Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0K
 ### Purchase
 
 <a href="https://apps.apple.com/us/app/tune-player/id6760257927" target="_blank">
-  <img src="assets/images/mac-app-store.svg" style="height:60px; margin-right:10px;"/>
+  <img src="assets/images/mac-app-store.svg" style="height:60px;"/>
 </a>
+&nbsp;&nbsp;
 <a href="https://apps.microsoft.com/store/detail/9PF51MD96MGL" target="_blank">
   <img src="assets/images/microsoft-store.svg" style="height:60px"/>
 </a>
