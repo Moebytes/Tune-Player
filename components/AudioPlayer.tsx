@@ -632,7 +632,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (abloop) {
                 applyAB(newDuration)
             } else {
-                Tone.Transport.loopEnd = newDuration
+                Tone.Transport.loopEnd = loop ? Math.max(0, newDuration - 0.05) : newDuration
             }
         } else {
             let currentPlayer = player
@@ -652,7 +652,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             if (abloop) {
                 applyAB(duration)
             } else {
-                Tone.Transport.loopEnd = currentDuration
+                Tone.Transport.loopEnd = loop ? Math.max(0, currentDuration - 0.05) : currentDuration
             }   
         }
         if (wasPlaying) Tone.getTransport().start()
@@ -840,7 +840,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
             }
         } else {
             Tone.getTransport().loopStart = 0
-            Tone.getTransport().loopEnd = duration
+            Tone.getTransport().loopEnd =  Math.max(0, duration - 0.05)
         }
 
     }, [loop, abloop, loopStart, loopEnd, duration, midi, midiDuration, speed])
@@ -849,7 +849,11 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setDragging(false)
         let percent = value / 100    
         const wasPlaying = Tone.getTransport().state === "started"
-        Tone.getTransport().pause() 
+        Tone.getTransport().pause()
+        if (!midi) {
+            player.unsync()
+            player.sync().start(0)
+        }
         if (reverse) {
             let value = (1-percent) * duration
             if (value < 0) value = 0
