@@ -650,10 +650,10 @@ const AudioPlayer: React.FunctionComponent = (props) => {
                 currentDuration - 0.001
             )
             if (abloop) {
-                applyAB(duration)
+                applyAB(currentDuration)
             } else {
-                Tone.Transport.loopEnd = loop ? Math.max(0, currentDuration - 0.05) : currentDuration
-            }   
+                applyLoopRegion(currentDuration)
+            }
         }
         if (wasPlaying) Tone.getTransport().start()
     }
@@ -823,27 +823,21 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         setLoop(value !== undefined ? value : !loop)
     }
 
-    useEffect(() => {
-        if (!duration) return
-        Tone.getTransport().loop = loop
-        if (!loop) return
-
-        if (abloop) {
-            const percent = duration / 100
-
-            if (reverse) {
-                Tone.getTransport().loopStart = (100 - loopEnd) * percent
-                Tone.getTransport().loopEnd = (100 - loopStart) * percent
-            } else {
-                Tone.getTransport().loopStart = loopStart * percent
-                Tone.getTransport().loopEnd = loopEnd * percent
-            }
-        } else {
-            Tone.getTransport().loopStart = 0
-            Tone.getTransport().loopEnd =  Math.max(0, duration - 0.05)
+    const applyLoopRegion = (currentDuration: number, useAB = abloop) => {
+        if (currentDuration <= 0) return
+        const transport = Tone.getTransport()
+        const start = useAB ? currentDuration * (reverse ? 100 - loopEnd : loopStart) / 100 : 0
+        const end = useAB ? currentDuration * (reverse ? 100 - loopStart : loopEnd) / 100 : currentDuration
+        transport.setLoopPoints(start, end)
+        transport.loop = loop
+        if (loop && (transport.seconds < start || transport.seconds >= end)) {
+            transport.seconds = start
         }
+    }
 
-    }, [loop, abloop, loopStart, loopEnd, duration, midi, midiDuration, speed])
+    useEffect(() => {
+        applyLoopRegion(duration)
+    }, [loop, abloop, loopStart, loopEnd, duration, reverse, midi, midiDuration, speed])
 
     const seek = (value: number) => {
         setDragging(false)
@@ -1129,8 +1123,7 @@ const AudioPlayer: React.FunctionComponent = (props) => {
         } else {
             abSlider.current.slider.style.display = "none"
             setABLoop(false)
-            Tone.getTransport().loopStart = 0
-            Tone.getTransport().loopEnd = duration
+            applyLoopRegion(duration, false)
         }
     }
 
