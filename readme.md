@@ -43,6 +43,10 @@ Our design is available here: https://www.figma.com/design/CTEs64SQjKg7M1SXzGx0K
 
 Linux version is free and available in [releases](https://github.com/Moebytes/Tune-Player/releases).
 
+### Mobile App
+
+- [Tune Player Mobile](https://github.com/Moebytes/Tune-Player-Mobile)
+
 ### See Also
 
 - [Pic Display](https://github.com/Moebytes/Pic-Display)
